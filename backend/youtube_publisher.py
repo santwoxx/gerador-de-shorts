@@ -132,7 +132,8 @@ Retorne APENAS um JSON válido com o formato:
                     token.write(creds.to_json())
             else:
                 raise RuntimeError(
-                    "Credenciais do YouTube não encontradas. Configure o client_secrets.json nas configurações."
+                    "Para enviar ao YouTube pela API: baixe o arquivo client_secrets.json (OAuth 2.0 Client ID) "
+                    "no Google Cloud Console e coloque-o na pasta 'storage/yt_auth/client_secrets.json'."
                 )
 
         youtube = build("youtube", "v3", credentials=creds)
