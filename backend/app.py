@@ -110,8 +110,8 @@ class AnalyzeRequest(BaseModel):
     @field_validator("max_clips")
     @classmethod
     def validate_max_clips(cls, v: int) -> int:
-        if v < 1 or v > 20:
-            raise ValueError("max_clips deve estar entre 1 e 20")
+        if v < 1 or v > 100:
+            raise ValueError("max_clips deve estar entre 1 e 100")
         return v
 
     @field_validator("clip_mode")
