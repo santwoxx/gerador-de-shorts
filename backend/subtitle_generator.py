@@ -18,7 +18,7 @@ class SubtitleGenerator:
         clip_end: float,
         style_preset: str = "yellow_viral",
         output_filename: Optional[str] = None,
-        chunk_size: int = 4,
+        chunk_size: int = 3,
     ) -> str:
         if not output_filename:
             output_filename = f"subs_{int(clip_start)}_{int(clip_end)}.ass"
@@ -131,15 +131,26 @@ class SubtitleGenerator:
 
     def _apply_text_effect(self, text: str, preset: str) -> str:
         words = text.split()
-        if not words or len(words) <= 1:
+        if not words:
             return text
 
-        if preset == "yellow_viral" and len(words) > 1:
-            return f"{{\\c&H0000FFFF&}}{words[0]}{{\\c&H00FFFFFF&}} {' '.join(words[1:])}"
-        elif preset == "neon_cyber" and len(words) > 1:
-            return f"{{\\c&H00FFFF00&}}{words[0]}{{\\c&H00FFFFFF&}} {' '.join(words[1:])}"
+        # Animação sutil de Pop-in Zoom (115% -> 100% em 90ms) para retenção de atenção estilo MrBeast/Hormozi
+        anim_prefix = r"{\fscx115\fscy115\t(0,90,\fscx100\fscy100)}"
 
-        return text
+        if preset == "yellow_viral":
+            if len(words) == 1:
+                return f"{anim_prefix}{{\\c&H0000FFFF&}}{words[0]}"
+            return f"{anim_prefix}{{\\c&H0000FFFF&}}{words[0]}{{\\c&H00FFFFFF&}} {' '.join(words[1:])}"
+        elif preset == "neon_cyber":
+            if len(words) == 1:
+                return f"{anim_prefix}{{\\c&H00FFFF00&}}{words[0]}"
+            return f"{anim_prefix}{{\\c&H00FFFF00&}}{words[0]}{{\\c&H00FFFFFF&}} {' '.join(words[1:])}"
+        elif preset == "red_impact":
+            if len(words) == 1:
+                return f"{anim_prefix}{{\\c&H000022FF&}}{words[0]}"
+            return f"{anim_prefix}{{\\c&H000022FF&}}{words[0]}{{\\c&H00FFFFFF&}} {' '.join(words[1:])}"
+
+        return f"{anim_prefix}{text}"
 
     def _format_ass_time(self, seconds: float) -> str:
         seconds = max(0.0, seconds)

@@ -160,6 +160,13 @@ class YouTubeTranscriber:
 
     def _clean_segments(self, raw_segments: Any) -> List[Dict[str, Any]]:
         cleaned = []
+
+        # Padrões de ruídos e artefatos de legenda automática do YouTube a serem limpos
+        noise_patterns = re.compile(
+            r"\[(música|musica|risos|aplausos|gritos|vinheta|ruído|ruido|music|laughter|applause|cheering|noise)\]",
+            re.IGNORECASE,
+        )
+
         for item in raw_segments:
             if isinstance(item, dict):
                 text = str(item.get("text", "")).strip()
@@ -171,17 +178,26 @@ class YouTubeTranscriber:
                 duration = float(getattr(item, "duration", 0.0))
 
             text = text.replace("\n", " ")
-            if not text:
+            text = noise_patterns.sub("", text).strip()
+            text = re.sub(r"\s+", " ", text)
+
+            if not text or len(text) < 1:
                 continue
 
             end = start + duration
 
-            cleaned.append({
-                "start": round(start, 2),
-                "end": round(end, 2),
-                "duration": round(duration, 2),
-                "text": text,
-            })
+            # Mescla micro-segmentos consecutivos muito curtos (< 0.4s) com a frase anterior para leitura fluída
+            if cleaned and (start - cleaned[-1]["end"]) < 0.3 and (cleaned[-1]["end"] - cleaned[-1]["start"]) < 1.2:
+                cleaned[-1]["end"] = round(end, 2)
+                cleaned[-1]["duration"] = round(cleaned[-1]["end"] - cleaned[-1]["start"], 2)
+                cleaned[-1]["text"] = f"{cleaned[-1]['text']} {text}"
+            else:
+                cleaned.append({
+                    "start": round(start, 2),
+                    "end": round(end, 2),
+                    "duration": round(duration, 2),
+                    "text": text,
+                })
         return cleaned
 
     def format_as_text_with_timestamps(self, segments: List[Dict[str, Any]]) -> str:
