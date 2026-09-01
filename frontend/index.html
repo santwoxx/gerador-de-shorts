@@ -157,14 +157,29 @@
                 </div>
             </section>
 
-            <!-- Sequential Mode Info Banner -->
+            <!-- Sequential Mode Info Banner & Batch Stepper -->
             <div id="sequential-info-banner" class="sequential-info-banner glass-panel" style="display: none;">
                 <div class="seq-info-icon">
                     <i class="ri-scissors-2-fill"></i>
                 </div>
                 <div class="seq-info-content">
-                    <h4>Modo Fatiamento Sequencial Ativo</h4>
-                    <p id="seq-info-text">O vídeo será dividido em <strong>5 partes iguais de 60s</strong> cobrindo do início ao fim.</p>
+                    <div class="seq-header-row">
+                        <h4>Modo Fatiamento Sequencial por Lotes</h4>
+                        <div class="seq-offset-picker">
+                            <label for="cfg-start-offset">Começar do Short #:</label>
+                            <input type="number" id="cfg-start-offset" min="1" value="1" class="config-number-input input-mini">
+                        </div>
+                    </div>
+                    <p id="seq-info-text">Fatiando <strong>5 Shorts por vez</strong> (do Short #1 ao #5). O sistema não repetirá trechos já feitos.</p>
+                    
+                    <!-- Quick Batch Jump Buttons -->
+                    <div class="seq-quick-batches">
+                        <span class="seq-batch-label">Atalhos de Lote:</span>
+                        <button type="button" class="btn-seq-batch active" data-offset="1">📍 Lote 1 (#1-5)</button>
+                        <button type="button" class="btn-seq-batch" data-offset="6">⏩ Lote 2 (#6-10)</button>
+                        <button type="button" class="btn-seq-batch" data-offset="11">⏩ Lote 3 (#11-15)</button>
+                        <button type="button" class="btn-seq-batch" data-offset="16">⏩ Lote 4 (#16-20)</button>
+                    </div>
                 </div>
             </div>
 

@@ -24,6 +24,9 @@ storage/watermarks/*
 .env
 .env.local
 
+storage/yt_auth/*
+!storage/yt_auth/.gitkeep
+
 .vscode/
 .idea/
 *.swp

@@ -1,6 +1,7 @@
 import os
 import json
 import re
+import math
 import logging
 from typing import List, Dict, Any, Optional
 
@@ -70,6 +71,7 @@ class AIClipper:
         max_clips: int = 5,
         preferred_provider: str = "auto",
         clip_mode: str = "viral_highlights",
+        start_clip_offset: int = 1,
     ) -> List[Dict[str, Any]]:
         if not transcript_segments:
             return []
@@ -78,10 +80,10 @@ class AIClipper:
         if not total_video_duration and transcript_segments:
             total_video_duration = transcript_segments[-1]["end"]
 
-        # Se o usuário escolheu o modo Sequencial / Fatiamento Completo (ex: 10 cortes de 1 minuto em vídeo de 10 min)
+        # Se o usuário escolheu o modo Sequencial / Fatiamento Completo por Lotes
         if clip_mode == "sequential":
-            logger.info("Modo de fatiamento sequencial completo ativado (%d cortes de %ds-%ds)", max_clips, min_duration, max_duration)
-            return self._slice_sequential(transcript_segments, video_metadata, min_duration, max_duration, max_clips, total_video_duration)
+            logger.info("Modo de fatiamento sequencial por lotes ativado (Shorts %d em diante, max %d)", start_clip_offset, max_clips)
+            return self._slice_sequential(transcript_segments, video_metadata, min_duration, max_duration, max_clips, total_video_duration, start_clip_offset)
 
         if preferred_provider in ("auto", "gemini") and self.gemini_api_key:
             try:
@@ -109,39 +111,32 @@ class AIClipper:
         min_duration: int,
         max_duration: int,
         max_clips: int,
-        total_duration: float
+        total_duration: float,
+        start_clip_offset: int = 1,
     ) -> List[Dict[str, Any]]:
         """
-        Fatia o vídeo inteiro sequencialmente em partes contínuas de duração pré-definida
-        (ex: 10 partes de 1 minuto cobrindo um vídeo de 10 minutos).
+        Fatia o vídeo sequencialmente por lotes com suporte a offset inicial (ex: partes 1-5, depois 6-10).
         """
         if total_duration <= 0:
             total_duration = transcript_segments[-1]["end"] if transcript_segments else 600.0
 
-        # Duração alvo de cada corte (ex: se min_duration=60 e max_duration=60, o corte terá 60s)
         target_step = float(max_duration)
         if target_step <= 0:
             target_step = 60.0
 
-        # Calcula quantas partes cabem ou usa max_clips
-        possible_parts = max(1, int(total_duration // target_step))
-        total_parts = min(max_clips, possible_parts) if max_clips > 0 else possible_parts
+        total_parts = max(1, math.ceil(total_duration / target_step))
+        start_idx = max(0, start_clip_offset - 1)
+        end_idx = min(total_parts, start_idx + (max_clips if max_clips > 0 else total_parts))
 
         clips = []
-        current_time = 0.0
-
-        for i in range(total_parts):
-            start = round(current_time, 2)
-            end = round(min(total_duration, current_time + target_step), 2)
+        for i in range(start_idx, end_idx):
+            start = round(i * target_step, 2)
+            end = round(min(total_duration, (i + 1) * target_step), 2)
             dur = round(end - start, 2)
 
-            if dur < 10.0 and i > 0:
-                # Se o último pedaço for menor que 10s, anexa ao anterior
-                clips[-1]["end"] = end
-                clips[-1]["duration"] = round(end - clips[-1]["start"], 2)
+            if dur < 5.0 and len(clips) > 0:
                 break
 
-            # Extrai texto correspondente a esse intervalo
             snippet_parts = []
             first_sentence = ""
             for seg in transcript_segments:
@@ -163,12 +158,10 @@ class AIClipper:
                 "score": 90 - (i % 8),
                 "hook": first_sentence[:80] + ("..." if len(first_sentence) > 80 else "") or f"Parte {i+1} do vídeo",
                 "explanation": f"Fatia sequencial contínua cobrindo {start}s até {end}s ({dur}s).",
-                "transcript_snippet": snippet or f"Trecho sequencial de {start}s a {end}s."
+                "transcript_snippet": snippet[:200] + "..." if len(snippet) > 200 else snippet,
+                "virality_score": 85,
+                "reasoning": f"Parte {i+1} de {total_parts} no fatiamento por lotes ({int(start//60)}m{int(start%60)}s ao {int(end//60)}m{int(end%60)}s)",
             })
-
-            current_time += target_step
-            if current_time >= total_duration:
-                break
 
         return clips
 

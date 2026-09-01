@@ -89,6 +89,7 @@ class AnalyzeRequest(BaseModel):
     max_clips: int = 5
     provider: str = "auto"
     clip_mode: str = "viral_highlights"
+    start_clip_offset: int = 1
 
     @field_validator("url")
     @classmethod
@@ -198,6 +199,7 @@ async def analyze_video(req: AnalyzeRequest):
             max_clips=req.max_clips,
             preferred_provider=req.provider,
             clip_mode=req.clip_mode,
+            start_clip_offset=req.start_clip_offset,
         )
 
         with tasks_lock:

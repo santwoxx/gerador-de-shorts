@@ -55,6 +55,7 @@ const el = {
     cfgClipMode: document.getElementById('cfg-clip-mode'),
     cfgMaxClips: document.getElementById('cfg-max-clips'),
     cfgClipDuration: document.getElementById('cfg-clip-duration'),
+    cfgStartOffset: document.getElementById('cfg-start-offset'),
     sequentialInfoBanner: document.getElementById('sequential-info-banner'),
     seqInfoText: document.getElementById('seq-info-text'),
     reactConfigPanel: document.getElementById('react-config-panel'),
@@ -256,10 +257,26 @@ function updateSequentialBanner() {
     if (el.sequentialInfoBanner) {
         el.sequentialInfoBanner.style.display = isSequential ? 'flex' : 'none';
     }
-    if (isSequential && el.seqInfoText) {
-        const qty = parseInt(el.cfgMaxClips.value, 10) || 5;
+    if (isSequential) {
+        const count = parseInt(el.cfgMaxClips.value, 10) || 5;
         const dur = parseInt(el.cfgClipDuration.value, 10) || 60;
-        el.seqInfoText.innerHTML = `O vídeo será dividido em <strong>${qty} partes iguais de ${dur}s</strong> cobrindo do início ao fim.`;
+        const startOffset = parseInt(el.cfgStartOffset ? el.cfgStartOffset.value : 1, 10) || 1;
+        const endOffset = startOffset + count - 1;
+        const minStart = Math.floor(((startOffset - 1) * dur) / 60);
+        const minEnd = Math.ceil((endOffset * dur) / 60);
+
+        if (el.seqInfoText) {
+            el.seqInfoText.innerHTML = `Fatiando <strong>${count} Shorts por lote</strong> (do Short #${startOffset} ao #${endOffset}, aprox. min ${minStart} ao ${minEnd}). Sem repetições!`;
+        }
+
+        document.querySelectorAll('.btn-seq-batch').forEach(btn => {
+            const bOffset = parseInt(btn.dataset.offset, 10);
+            if (bOffset === startOffset) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        });
     }
 }
 
@@ -273,6 +290,20 @@ function setupEventListeners() {
     el.cfgClipMode.addEventListener('change', updateSequentialBanner);
     el.cfgMaxClips.addEventListener('input', updateSequentialBanner);
     el.cfgClipDuration.addEventListener('input', updateSequentialBanner);
+    if (el.cfgStartOffset) {
+        el.cfgStartOffset.addEventListener('input', updateSequentialBanner);
+    }
+
+    document.querySelectorAll('.btn-seq-batch').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const offset = parseInt(e.currentTarget.dataset.offset, 10);
+            if (el.cfgStartOffset) el.cfgStartOffset.value = offset;
+            updateSequentialBanner();
+            if (state.currentVideo && state.currentVideo.url) {
+                analyzeVideo();
+            }
+        });
+    });
 
     el.btnPaste.addEventListener('click', async () => {
         try {
@@ -738,6 +769,7 @@ async function analyzeVideo() {
                 max_clips: maxClips,
                 provider: state.settings.provider,
                 clip_mode: clipMode,
+                start_clip_offset: parseInt(el.cfgStartOffset ? el.cfgStartOffset.value : 1, 10) || 1,
             }),
             signal: state.activeAbortController.signal
         });
@@ -1181,6 +1213,14 @@ function startBatchProgressPolling(taskId, totalClips) {
                     const successCount = result.success_count || 0;
                     const totalCount = result.total || totalClips;
                     showToast(`${successCount}/${totalCount} shorts gerados com sucesso! Confira na Biblioteca.`, 'success');
+
+                    if (el.cfgClipMode.value === 'sequential' && el.cfgStartOffset) {
+                        const currentOff = parseInt(el.cfgStartOffset.value, 10) || 1;
+                        const nextOff = currentOff + totalCount;
+                        el.cfgStartOffset.value = nextOff;
+                        updateSequentialBanner();
+                        showToast(`Próximo lote configurado a partir do Short #${nextOff}!`, 'info');
+                    }
 
                     el.librarySection.style.display = 'block';
                     el.resultsSection.style.display = 'none';
