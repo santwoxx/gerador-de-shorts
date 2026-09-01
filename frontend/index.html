@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AutoShorts AI - Gerador de Cortes do YouTube para Shorts</title>
+    <meta name="description" content="Transforme vídeos do YouTube em Shorts, Reels e TikToks verticais 9:16 com legendas dinâmicas e marca d'água usando IA 100% gratuita.">
+    <!-- Favicon -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚡</text></svg>">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Remix Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Background Ambient Glows -->
+    <div class="glow-sphere sphere-1"></div>
+    <div class="glow-sphere sphere-2"></div>
+    <div class="glow-sphere sphere-3"></div>
+
+    <div class="app-container">
+        <!-- Top Navigation -->
+        <header class="navbar">
+            <div class="nav-brand">
+                <div class="brand-icon">
+                    <i class="ri-flashlight-fill"></i>
+                </div>
+                <div class="brand-text">
+                    <span class="brand-name">AutoShorts<span class="brand-ai">AI</span></span>
+                    <span class="brand-tagline">Viral Clipper & Subtitle Engine</span>
+                </div>
+            </div>
+            
+            <div class="nav-actions">
+                <div class="free-badge">
+                    <i class="ri-shield-check-line"></i>
+                    <span>100% Gratuito & Offline</span>
+                </div>
+                <button id="btn-open-settings" class="btn-icon" title="Configurações de IA">
+                    <i class="ri-settings-3-line"></i>
+                    <span>Configurações</span>
+                </button>
+                <button id="btn-view-library" class="btn-secondary">
+                    <i class="ri-movie-2-line"></i>
+                    <span>Meus Shorts</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Workspace -->
+        <main class="main-content">
+            <!-- Hero & URL Input Section -->
+            <section class="hero-section">
+                <div class="hero-badge">
+                    <i class="ri-sparkling-fill"></i> Inteligência Artificial para Cortes Verticais
+                </div>
+                <h1 class="hero-title">
+                    Transforme qualquer vídeo em <br>
+                    <span class="gradient-text">Shorts Virais em Segundos</span>
+                </h1>
+                <p class="hero-desc">
+                    Cole o link do YouTube, selecione o estilo de legenda e marca d'água, e a IA extrai automaticamente os momentos de maior retenção prontos para postar no TikTok, Reels e Shorts.
+                </p>
+
+                <!-- Input Box -->
+                <div class="url-input-card">
+                    <div class="input-wrapper">
+                        <i class="ri-youtube-fill yt-icon"></i>
+                        <input 
+                            type="text" 
+                            id="yt-url-input" 
+                            placeholder="Cole o link do YouTube aqui (ex: https://www.youtube.com/watch?v=...)" 
+                            autocomplete="off"
+                        >
+                        <button id="btn-paste-url" class="btn-paste" title="Colar da área de transferência">
+                            <i class="ri-clipboard-line"></i>
+                        </button>
+                    </div>
+                    <button id="btn-analyze" class="btn-primary">
+                        <span class="btn-text">
+                            <i class="ri-magic-line"></i> Encontrar Cortes Virais
+                        </span>
+                        <div class="btn-spinner" id="analyze-spinner" style="display: none;"></div>
+                    </button>
+                </div>
+            </section>
+
+            <!-- Quick Settings Panel -->
+            <section class="config-bar glass-panel">
+                <div class="config-item">
+                    <label for="cfg-wm-preset">
+                        <i class="ri-at-line"></i> Marca d'Água & Overlay
+                    </label>
+                    <div class="wm-inputs-group">
+                        <select id="cfg-wm-preset">
+                            <option value="gato_galudo_916">🎬 Gato Galudo 9:16 Overlay</option>
+                            <option value="canal_top_right" selected>🔥 Canal Topo Direito (@meucanal)</option>
+                            <option value="selo_bottom_center">⚡ Selo Rodapé Centro (CORTES VIRIS)</option>
+                            <option value="custom">✏️ Personalizado...</option>
+                        </select>
+                        <button id="btn-open-wm-editor" class="btn-secondary btn-wm-edit" type="button">
+                            <i class="ri-palette-line"></i> <span>Editor 9:16</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="config-item">
+                    <label for="cfg-subtitle-style">
+                        <i class="ri-chat-voice-line"></i> Estilo de Legenda
+                    </label>
+                    <select id="cfg-subtitle-style">
+                        <option value="yellow_viral">🔥 Amarelo Viral (MrBeast / Hormozi)</option>
+                        <option value="neon_cyber">⚡ Neon Cyber (Podcast Moderno)</option>
+                        <option value="minimal_white">🤍 Minimalista Branco (Elegante)</option>
+                        <option value="red_impact">🎯 Vermelho Impacto (Alto Contraste)</option>
+                    </select>
+                </div>
+
+                <div class="config-item">
+                    <label for="cfg-layout-mode">
+                        <i class="ri-smartphone-line"></i> Formato Vertical 9:16
+                    </label>
+                    <select id="cfg-layout-mode">
+                        <option value="blur_bg">📱 Fundo Desfocado (Blurred Fill)</option>
+                        <option value="react_split">🎬 Modo React / Split (Câmera + Vídeo)</option>
+                        <option value="center_crop">✂️ Recorte Centralizado (Crop 9:16)</option>
+                        <option value="fit_letterbox">⬛ Barras Pretas (Letterbox)</option>
+                    </select>
+                </div>
+
+                <div class="config-item">
+                    <label for="cfg-clip-mode">
+                        <i class="ri-scissors-2-line"></i> Modo de Corte
+                    </label>
+                    <select id="cfg-clip-mode">
+                        <option value="viral_highlights">🧠 Highlights Virais (IA seleciona os melhores)</option>
+                        <option value="sequential">✂️ Fatiamento Sequencial (Divide o vídeo inteiro)</option>
+                    </select>
+                </div>
+
+                <div class="config-item">
+                    <label for="cfg-max-clips">
+                        <i class="ri-hashtag"></i> Quantidade de Shorts
+                    </label>
+                    <input type="number" id="cfg-max-clips" min="1" max="20" value="5" class="config-number-input">
+                </div>
+
+                <div class="config-item">
+                    <label for="cfg-clip-duration">
+                        <i class="ri-time-line"></i> Duração de cada Short (seg)
+                    </label>
+                    <input type="number" id="cfg-clip-duration" min="15" max="300" value="60" class="config-number-input">
+                </div>
+            </section>
+
+            <!-- Sequential Mode Info Banner -->
+            <div id="sequential-info-banner" class="sequential-info-banner glass-panel" style="display: none;">
+                <div class="seq-info-icon">
+                    <i class="ri-scissors-2-fill"></i>
+                </div>
+                <div class="seq-info-content">
+                    <h4>Modo Fatiamento Sequencial Ativo</h4>
+                    <p id="seq-info-text">O vídeo será dividido em <strong>5 partes iguais de 60s</strong> cobrindo do início ao fim.</p>
+                </div>
+            </div>
+
+            <!-- React Optimization Controls Panel (Shown when react_split is selected) -->
+            <section id="react-config-panel" class="react-config-panel glass-panel" style="display: none;">
+                <div class="react-panel-header">
+                    <div class="react-panel-title">
+                        <i class="ri-video-chat-fill"></i>
+                        <span>Otimização para React & Streamers (Split-Screen)</span>
+                    </div>
+                    <span class="badge-react-live">Auto-Enquadramento Ativo</span>
+                </div>
+                <div class="react-controls-grid">
+                    <div class="react-control-item">
+                        <label for="cfg-react-cam-pos">
+                            <i class="ri-user-smile-line"></i> Posição da Câmera no Vídeo Original:
+                        </label>
+                        <select id="cfg-react-cam-pos">
+                            <option value="bottom_right">Canto Inferior Direito (Mais comum)</option>
+                            <option value="bottom_left">Canto Inferior Esquerdo</option>
+                            <option value="top_right">Canto Superior Direito</option>
+                            <option value="top_left">Canto Superior Esquerdo</option>
+                            <option value="center_top">Centro Topo</option>
+                            <option value="left_side">Lado Esquerdo Inteiro (Dual Podcast)</option>
+                            <option value="right_side">Lado Direito Inteiro (Dual Podcast)</option>
+                        </select>
+                    </div>
+
+                    <div class="react-control-item">
+                        <label for="cfg-react-cam-order">
+                            <i class="ri-layout-top-line"></i> Ordem do Empilhamento Vertical:
+                        </label>
+                        <select id="cfg-react-cam-order">
+                            <option value="cam_top_content_bottom">Câmera no Topo / Vídeo no Fundo (Recomendado)</option>
+                            <option value="content_top_cam_bottom">Vídeo no Topo / Câmera no Fundo</option>
+                        </select>
+                    </div>
+
+                    <div class="react-control-item">
+                        <label for="cfg-react-ratio">
+                            <i class="ri-aspect-ratio-line"></i> Proporção da Divisão (Ratio):
+                        </label>
+                        <select id="cfg-react-ratio">
+                            <option value="50_50">50% Câmera / 50% Conteúdo (Equilibrado)</option>
+                            <option value="40_60">40% Câmera / 60% Conteúdo (Foco no Vídeo)</option>
+                            <option value="60_40">60% Câmera / 40% Conteúdo (Foco no Streamer)</option>
+                        </select>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Video Info & Highlights Container -->
+            <section id="results-section" class="results-section" style="display: none;">
+                <!-- Video Header Info Card -->
+                <div class="video-meta-card glass-panel" id="video-meta-card">
+                    <div class="meta-thumb-wrapper">
+                        <img id="meta-thumb" src="" alt="Thumbnail">
+                        <span id="meta-duration" class="meta-duration-badge">00:00</span>
+                    </div>
+                    <div class="meta-details">
+                        <div class="meta-channel" id="meta-channel">Canal</div>
+                        <h2 class="meta-title" id="meta-title">Título do Vídeo</h2>
+                        <div class="meta-stats">
+                            <span><i class="ri-film-line"></i> <span id="meta-clips-count">0</span> cortes sugeridos</span>
+                            <span><i class="ri-text-snippet"></i> <span id="meta-transcript-count">0</span> falas transcritas</span>
+                            <span class="engine-badge" id="meta-engine-used"><i class="ri-cpu-line"></i> Motor Local</span>
+                            <span class="genre-badge" id="meta-genre-badge"><i class="ri-movie-line"></i> Geral</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- React Auto-Detection Alert Banner -->
+                <div id="react-alert-banner" class="react-alert-banner glass-panel" style="display: none;">
+                    <div class="react-alert-icon">
+                        <i class="ri-sparkling-fill"></i>
+                    </div>
+                    <div class="react-alert-content">
+                        <h4 id="react-alert-title">Vídeo de React / Streamer Detectado!</h4>
+                        <p id="react-alert-text">Detectamos que este vídeo possui streamer/reação. O formato <strong>Split-Screen (Câmera + Conteúdo)</strong> foi ativado automaticamente para gerar um Short perfeito!</p>
+                    </div>
+                </div>
+
+                <!-- Section Heading -->
+                <div class="section-header">
+                    <div>
+                        <h3 class="section-title">Cortes de Alta Retenção Identificados</h3>
+                        <p class="section-subtitle">A IA selecionou os momentos mais propensos a viralizar baseando-se no gancho e narrativa.</p>
+                    </div>
+                    <button id="btn-generate-all" class="btn-generate-all" style="display: none;">
+                        <i class="ri-movie-fill"></i>
+                        <span>Gerar Todos os Shorts</span>
+                    </button>
+                </div>
+
+                <!-- Clips Grid -->
+                <div class="clips-grid" id="clips-grid">
+                    <!-- Cards de cortes injetados via JS -->
+                </div>
+            </section>
+
+            <!-- Library / History Section -->
+            <section id="library-section" class="library-section" style="display: none;">
+                <div class="section-header">
+                    <div>
+                        <h3 class="section-title">Biblioteca de Shorts Gerados</h3>
+                        <p class="section-subtitle">Todos os vídeos prontos para download e publicação.</p>
+                    </div>
+                    <button id="btn-refresh-library" class="btn-icon">
+                        <i class="ri-refresh-line"></i> Atualizar
+                    </button>
+                </div>
+                <div class="library-grid" id="library-grid">
+                    <!-- Itens da biblioteca injetados via JS -->
+                </div>
+            </section>
+        </main>
+
+        <!-- Generation Progress Modal -->
+        <div class="modal-overlay" id="progress-modal" style="display: none;">
+            <div class="modal-card glass-panel progress-card">
+                <div class="progress-header">
+                    <div class="progress-icon-wrapper pulse-anim">
+                        <i class="ri-movie-fill"></i>
+                    </div>
+                    <h3 class="modal-title">Renderizando seu Short em 1080x1920</h3>
+                    <p class="modal-subtitle" id="progress-status-text">Iniciando pipeline de vídeo...</p>
+                </div>
+
+                <div class="progress-bar-container">
+                    <div class="progress-bar-track">
+                        <div class="progress-bar-fill" id="progress-bar-fill" style="width: 0%;"></div>
+                    </div>
+                    <div class="progress-info">
+                        <span id="progress-percentage">0%</span>
+                        <span id="progress-stage-step">Etapa 1 de 4</span>
+                    </div>
+                </div>
+
+                <div class="progress-steps-list">
+                    <div class="step-item active" id="step-subs">
+                        <i class="ri-checkbox-circle-fill"></i>
+                        <span>Estilização de Legendas ASS</span>
+                    </div>
+                    <div class="step-item" id="step-download">
+                        <i class="ri-checkbox-circle-fill"></i>
+                        <span>Download em Alta Definição</span>
+                    </div>
+                    <div class="step-item" id="step-render">
+                        <i class="ri-checkbox-circle-fill"></i>
+                        <span>Conversão 9:16 + Blur + FFmpeg</span>
+                    </div>
+                    <div class="step-item" id="step-finish">
+                        <i class="ri-checkbox-circle-fill"></i>
+                        <span>Finalização do Arquivo MP4</span>
+                    </div>
+                </div>
+
+                <!-- Batch Progress Info -->
+                <div id="batch-progress-info" class="batch-progress-info" style="display: none;">
+                    <div class="batch-counter">
+                        <i class="ri-stack-fill"></i>
+                        <span id="batch-counter-text">Short 0 de 0</span>
+                    </div>
+                    <div class="batch-mini-bar">
+                        <div class="batch-mini-bar-fill" id="batch-mini-bar-fill" style="width: 0%;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Video Player Preview Modal (9:16 Vertical Player) -->
+        <div class="modal-overlay" id="preview-modal" style="display: none;">
+            <div class="player-modal-container">
+                <button class="btn-close-modal" id="btn-close-preview">
+                    <i class="ri-close-line"></i>
+                </button>
+                <div class="vertical-phone-frame">
+                    <div class="phone-notch"></div>
+                    <video id="preview-video-element" controls playsinline loop preload="auto">
+                        Seu navegador não suporta a tag de vídeo.
+                    </video>
+                </div>
+                <div class="preview-actions-panel glass-panel">
+                    <h4 class="preview-clip-title" id="preview-clip-title">Título do Short</h4>
+                    <div class="preview-clip-meta" id="preview-clip-meta">Duração: 45s</div>
+                    <div class="preview-buttons">
+                        <a id="btn-download-short" class="btn-primary" href="#" download>
+                            <i class="ri-download-2-fill"></i> Baixar Short (.MP4)
+                        </a>
+                        <button id="btn-copy-title" class="btn-secondary">
+                            <i class="ri-file-copy-line"></i> Copiar Título
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings Modal (AI API Keys & Preferences) -->
+        <div class="modal-overlay" id="settings-modal" style="display: none;">
+            <div class="modal-card glass-panel settings-card">
+                <div class="modal-header">
+                    <div class="modal-title-group">
+                        <i class="ri-settings-3-fill"></i>
+                        <h3>Configurações de IA e Motor</h3>
+                    </div>
+                    <button class="btn-close-modal-inline" id="btn-close-settings">
+                        <i class="ri-close-line"></i>
+                    </button>
+                </div>
+                
+                <div class="settings-body">
+                    <div class="setting-group">
+                        <label for="setting-provider">
+                            <strong>Motor de Análise de Cortes:</strong>
+                        </label>
+                        <select id="setting-provider">
+                            <option value="auto">Automático (Gemini > Groq > Motor Local)</option>
+                            <option value="gemini">Google Gemini Flash (Free Tier)</option>
+                            <option value="groq">Groq Llama 3 (Free Tier Ultra-Rápido)</option>
+                            <option value="heuristics">Motor Local Heurístico (100% Offline / Sem Chaves)</option>
+                        </select>
+                    </div>
+
+                    <div class="setting-group">
+                        <label for="setting-gemini-key">
+                            <strong>Chave de API do Google Gemini (Opcional - Gratuita):</strong>
+                        </label>
+                        <input type="password" id="setting-gemini-key" placeholder="AIzaSy...">
+                        <span class="setting-hint">
+                            Obtenha uma chave 100% gratuita no <a href="https://aistudio.google.com/" target="_blank">Google AI Studio <i class="ri-external-link-line"></i></a> (1.500 requisições diárias sem custo).
+                        </span>
+                    </div>
+
+                    <div class="setting-group">
+                        <label for="setting-groq-key">
+                            <strong>Chave de API do Groq (Opcional - Gratuita):</strong>
+                        </label>
+                        <input type="password" id="setting-groq-key" placeholder="gsk_...">
+                        <span class="setting-hint">
+                            Obtenha gratuitamente no <a href="https://console.groq.com/" target="_blank">Groq Console <i class="ri-external-link-line"></i></a>.
+                        </span>
+                    </div>
+
+                    <div class="alert-box">
+                        <i class="ri-information-line"></i>
+                        <div>
+                            <strong>Zero Custo Garantido:</strong> Se você não preencher nenhuma chave de API, o sistema continuará funcionando perfeitamente usando o <strong>Motor Heurístico Local</strong> integrado sem qualquer restrição!
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-footer">
+                    <button id="btn-save-settings" class="btn-primary">
+                        <i class="ri-save-line"></i> Salvar Preferências
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Watermark Visual Editor & Live Preview Modal -->
+        <div class="modal-overlay" id="wm-editor-modal" style="display: none;">
+            <div class="modal-card glass-panel wm-editor-card">
+                <div class="modal-header">
+                    <div class="modal-title-group">
+                        <i class="ri-palette-fill"></i>
+                        <h3>Editor de Marca d'Água & Live Preview 9:16</h3>
+                    </div>
+                    <button class="btn-close-modal-inline" id="btn-close-wm-editor">
+                        <i class="ri-close-line"></i>
+                    </button>
+                </div>
+
+                <div class="wm-editor-container">
+                    <!-- Left: Interactive Live Preview Frame 9:16 -->
+                    <div class="wm-preview-section">
+                        <div class="wm-phone-frame">
+                            <div class="phone-notch"></div>
+                            <div class="wm-stage-bg" id="wm-stage-bg">
+                                <div class="wm-sample-subtitle">EXEMPLO DE LEGENDA VIRAL</div>
+                                <!-- Overlaid Watermark (Image or Text or Full 9:16 Overlay) -->
+                                <div class="wm-overlay-element" id="wm-overlay-element">
+                                    <span id="wm-preview-text">@meucanal</span>
+                                    <img id="wm-preview-img" src="" alt="Watermark" style="display: none;">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="wm-preview-hint">
+                            <i class="ri-eye-line"></i> Pré-visualização exata em 1080x1920
+                        </div>
+                    </div>
+
+                    <!-- Right: Controls -->
+                    <div class="wm-controls-section">
+                        <div class="setting-group">
+                            <label for="wm-type-select"><strong>Tipo de Elemento:</strong></label>
+                            <select id="wm-type-select">
+                                <option value="text">🔤 Texto (Canal / @Arroba)</option>
+                                <option value="image">🖼️ Imagem sem Fundo (PNG / Logotipo)</option>
+                                <option value="full_overlay">🎬 Overlay 9:16 Tela Cheia (Moldura / Gato Galudo)</option>
+                            </select>
+                        </div>
+
+                        <!-- Text inputs -->
+                        <div class="setting-group" id="wm-text-group">
+                            <label for="wm-text-input"><strong>Texto da Marca d'Água:</strong></label>
+                            <input type="text" id="wm-text-input" value="@meucanal" placeholder="Ex: @seucanal">
+                        </div>
+
+                        <!-- Image upload & select inputs -->
+                        <div class="setting-group" id="wm-image-group" style="display: none;">
+                            <label><strong>Imagem da Marca d'Água / Overlay:</strong></label>
+                            <div class="wm-upload-box">
+                                <select id="wm-image-select">
+                                    <option value="">-- Selecione uma Imagem --</option>
+                                    <option value="gato_galudo_overlay.png">🎬 Gato Galudo Overlay (Exemplo 9:16)</option>
+                                </select>
+                                <div class="wm-upload-btn-wrapper">
+                                    <button class="btn-secondary btn-upload-wm" id="btn-upload-wm-file" type="button">
+                                        <i class="ri-upload-2-line"></i> Enviar PNG
+                                    </button>
+                                    <input type="file" id="wm-file-input" accept="image/png,image/jpeg,image/webp" style="display:none;">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Position select -->
+                        <div class="setting-group">
+                            <label for="wm-pos-select"><strong>Posição na Tela:</strong></label>
+                            <select id="wm-pos-select">
+                                <option value="top_right">Topo Direito</option>
+                                <option value="top_left">Topo Esquerdo</option>
+                                <option value="top_center">Topo Centro</option>
+                                <option value="bottom_right">Inferior Direito</option>
+                                <option value="bottom_left">Inferior Esquerdo</option>
+                                <option value="bottom_center">Inferior Centro</option>
+                                <option value="center">Centro</option>
+                                <option value="full_916">Overlay 9:16 Tela Cheia (1080x1920)</option>
+                            </select>
+                        </div>
+
+                        <!-- Scale Slider -->
+                        <div class="setting-group" id="wm-scale-group">
+                            <div class="slider-label-row">
+                                <label for="wm-scale-range"><strong>Tamanho / Escala:</strong></label>
+                                <span id="wm-scale-val">250px</span>
+                            </div>
+                            <input type="range" id="wm-scale-range" min="60" max="1080" step="10" value="250">
+                        </div>
+
+                        <!-- Opacity Slider -->
+                        <div class="setting-group">
+                            <div class="slider-label-row">
+                                <label for="wm-opacity-range"><strong>Opacidade (Transparência):</strong></label>
+                                <span id="wm-opacity-val">90%</span>
+                            </div>
+                            <input type="range" id="wm-opacity-range" min="0.1" max="1.0" step="0.05" value="0.9">
+                        </div>
+
+                        <!-- Preset Name and Save Button -->
+                        <div class="wm-preset-save-box">
+                            <input type="text" id="wm-preset-name-input" placeholder="Nome da Predefinição (ex: Meu Logo Topo)">
+                            <button id="btn-save-wm-preset" class="btn-primary">
+                                <i class="ri-bookmark-3-line"></i> Salvar Predefinição
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Toast Notifications Container -->
+        <div id="toast-container" class="toast-container"></div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
