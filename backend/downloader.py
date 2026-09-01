@@ -80,19 +80,22 @@ class YouTubeDownloader:
                 total = d.get("total_bytes") or d.get("total_bytes_estimate") or 0
                 downloaded = d.get("downloaded_bytes", 0)
                 if total > 0:
-                    progress_hook(min(99, int(downloaded / total * 100)))
+                    pct = min(99.0, (downloaded / total) * 100.0)
+                    progress_hook(pct)
             elif progress_hook and d.get("status") == "finished":
-                progress_hook(100)
+                progress_hook(100.0)
 
         ydl_opts = {
-            "format": "bestvideo[ext=mp4][height<=1080]+bestaudio[ext=m4a]/best[ext=mp4]/best",
+            "format": "bestvideo[ext=mp4][height<=1080]+bestaudio[ext=m4a]/best[ext=mp4]/best[height<=720]/best",
             "outtmpl": output_template,
             "merge_output_format": "mp4",
             "quiet": True,
             "no_warnings": True,
             "socket_timeout": 60,
-            "retries": 3,
-            "fragment_retries": 3,
+            "retries": 5,
+            "fragment_retries": 5,
+            "concurrent_fragment_downloads": 4,
+            "nocheckcertificate": True,
             "progress_hooks": [_progress_hook],
         }
 

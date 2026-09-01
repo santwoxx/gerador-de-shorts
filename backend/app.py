@@ -247,12 +247,19 @@ def _run_short_generation_task(task_id: str, req: GenerateShortRequest):
             output_filename=ass_filename,
         )
 
-        with tasks_lock:
-            tasks[task_id]["progress"] = 40
-            tasks[task_id]["message"] = "Baixando video fonte em alta resolucao..."
+        def dl_progress(pct: float):
+            mapped = 40 + int((pct / 100.0) * 15)
+            with tasks_lock:
+                tasks[task_id]["progress"] = min(54, mapped)
+                tasks[task_id]["message"] = f"Baixando video fonte ({int(pct)}%)..."
 
         video_id = transcriber.extract_video_id(req.url)
-        raw_video_path = downloader.download_video(req.url, video_id, ffmpeg_path=video_proc.ffmpeg_path)
+        raw_video_path = downloader.download_video(
+            req.url,
+            video_id,
+            ffmpeg_path=video_proc.ffmpeg_path,
+            progress_hook=dl_progress,
+        )
 
         wm_img_path = None
         if req.watermark_type in ("image", "full_overlay") and req.watermark_image_name:
