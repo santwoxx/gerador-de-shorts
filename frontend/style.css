@@ -387,16 +387,17 @@ body {
    ========================================================================== */
 .config-bar {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-    gap: 20px;
-    padding: 20px 24px;
-    margin-bottom: 40px;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 20px 24px;
+    padding: 24px;
+    margin-bottom: 32px;
 }
 
 .config-item {
     display: flex;
     flex-direction: column;
     gap: 8px;
+    min-width: 0;
 }
 
 .config-item label {
@@ -406,6 +407,9 @@ body {
     display: flex;
     align-items: center;
     gap: 6px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .config-item input,
@@ -419,6 +423,9 @@ body {
     font-family: var(--font-body);
     outline: none;
     transition: border-color 0.2s ease;
+    width: 100%;
+    box-sizing: border-box;
+    min-width: 0;
 }
 
 .config-item select option {
@@ -434,14 +441,13 @@ body {
 .wm-inputs {
     display: flex;
     gap: 8px;
-}
-
-.wm-inputs input {
-    flex: 1.4;
+    width: 100%;
+    min-width: 0;
 }
 
 .wm-inputs select {
     flex: 1;
+    min-width: 0;
 }
 
 /* Sequential Batch Stepper & Info Banner */
@@ -1392,6 +1398,12 @@ body {
 /* ==========================================================================
    RESPONSIVE
    ========================================================================== */
+@media (max-width: 1200px) {
+    .config-bar {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
 @media (max-width: 768px) {
     .app-container {
         padding: 12px 16px 60px 16px;
