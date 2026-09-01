@@ -58,6 +58,7 @@ const el = {
     cfgStartOffset: document.getElementById('cfg-start-offset'),
     sequentialInfoBanner: document.getElementById('sequential-info-banner'),
     seqInfoText: document.getElementById('seq-info-text'),
+    btnSeqGenerateNow: document.getElementById('btn-seq-generate-now'),
     reactConfigPanel: document.getElementById('react-config-panel'),
     cfgReactCamPos: document.getElementById('cfg-react-cam-pos'),
     cfgReactCamOrder: document.getElementById('cfg-react-cam-order'),
@@ -322,6 +323,7 @@ function setupEventListeners() {
     });
 
     el.btnAnalyze.addEventListener('click', analyzeVideo);
+    if (el.btnSeqGenerateNow) el.btnSeqGenerateNow.addEventListener('click', analyzeVideo);
 
     el.btnOpenSettings.addEventListener('click', () => {
         fetchStorageStats();

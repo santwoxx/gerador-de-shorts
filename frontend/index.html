@@ -81,7 +81,7 @@
                     </div>
                     <button id="btn-analyze" class="btn-primary">
                         <span class="btn-text">
-                            <i class="ri-magic-line"></i> Encontrar Cortes Virais
+                            <i class="ri-flashlight-fill"></i> Gerar Shorts / Encontrar Cortes
                         </span>
                         <div class="btn-spinner" id="analyze-spinner" style="display: none;"></div>
                     </button>
@@ -172,13 +172,18 @@
                     </div>
                     <p id="seq-info-text">Fatiando <strong>5 Shorts por vez</strong> (do Short #1 ao #5). O sistema não repetirá trechos já feitos.</p>
                     
-                    <!-- Quick Batch Jump Buttons -->
-                    <div class="seq-quick-batches">
-                        <span class="seq-batch-label">Atalhos de Lote:</span>
-                        <button type="button" class="btn-seq-batch active" data-offset="1">📍 Lote 1 (#1-5)</button>
-                        <button type="button" class="btn-seq-batch" data-offset="6">⏩ Lote 2 (#6-10)</button>
-                        <button type="button" class="btn-seq-batch" data-offset="11">⏩ Lote 3 (#11-15)</button>
-                        <button type="button" class="btn-seq-batch" data-offset="16">⏩ Lote 4 (#16-20)</button>
+                    <!-- Quick Batch Jump Buttons & Direct Batch Action -->
+                    <div class="seq-actions-row">
+                        <div class="seq-quick-batches">
+                            <span class="seq-batch-label">Atalhos de Lote:</span>
+                            <button type="button" class="btn-seq-batch active" data-offset="1">📍 Lote 1 (#1-5)</button>
+                            <button type="button" class="btn-seq-batch" data-offset="6">⏩ Lote 2 (#6-10)</button>
+                            <button type="button" class="btn-seq-batch" data-offset="11">⏩ Lote 3 (#11-15)</button>
+                            <button type="button" class="btn-seq-batch" data-offset="16">⏩ Lote 4 (#16-20)</button>
+                        </div>
+                        <button type="button" id="btn-seq-generate-now" class="btn-primary btn-seq-gen">
+                            <i class="ri-flashlight-fill"></i> Fatiar e Gerar este Lote Agora
+                        </button>
                     </div>
                 </div>
             </div>
