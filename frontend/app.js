@@ -131,6 +131,18 @@ const el = {
     wmOverlayElement: document.getElementById('wm-overlay-element'),
     wmPreviewText: document.getElementById('wm-preview-text'),
     wmPreviewImg: document.getElementById('wm-preview-img'),
+    // YouTube Publish Modal Elements
+    btnOpenYtPublish: document.getElementById('btn-open-yt-publish'),
+    ytPublishModal: document.getElementById('yt-publish-modal'),
+    btnCloseYtPublish: document.getElementById('btn-close-yt-publish'),
+    ytPubTitle: document.getElementById('yt-pub-title'),
+    ytPubDesc: document.getElementById('yt-pub-desc'),
+    ytPubPrivacy: document.getElementById('yt-pub-privacy'),
+    ytScheduleGroup: document.getElementById('yt-schedule-group'),
+    ytPubScheduleDatetime: document.getElementById('yt-pub-schedule-datetime'),
+    btnAiGenMeta: document.getElementById('btn-ai-gen-meta'),
+    btnSubmitYtPublish: document.getElementById('btn-submit-yt-publish'),
+    ytAuthNotice: document.getElementById('yt-auth-notice'),
 };
 
 // ==========================================================================
@@ -320,6 +332,25 @@ function setupEventListeners() {
 
     if (el.btnGenerateAll) {
         el.btnGenerateAll.addEventListener('click', generateAllShorts);
+    }
+
+    // YouTube Publish Event Listeners
+    if (el.btnOpenYtPublish) {
+        el.btnOpenYtPublish.addEventListener('click', openYtPublishModalFromPreview);
+    }
+    if (el.btnCloseYtPublish) {
+        el.btnCloseYtPublish.addEventListener('click', closeYtPublishModal);
+    }
+    if (el.ytPubPrivacy) {
+        el.ytPubPrivacy.addEventListener('change', () => {
+            el.ytScheduleGroup.style.display = el.ytPubPrivacy.value === 'scheduled' ? 'block' : 'none';
+        });
+    }
+    if (el.btnAiGenMeta) {
+        el.btnAiGenMeta.addEventListener('click', generateAiMetadataForPublish);
+    }
+    if (el.btnSubmitYtPublish) {
+        el.btnSubmitYtPublish.addEventListener('click', submitYoutubePublish);
     }
 
     // Watermark Editor Event Listeners
@@ -1197,9 +1228,10 @@ function updateProgressUI(task) {
 }
 
 // ==========================================================================
-// PREVIEW & LIBRARY
+// PREVIEW & LIBRARY & YOUTUBE PUBLISH
 // ==========================================================================
 function openPreviewModal(result) {
+    state.activePublishResult = result;
     el.previewTitle.textContent = result.title || 'Short Viral';
     el.previewMeta.textContent = `Duração: ${result.duration}s | Formato: Vertical 9:16 (1080x1920)`;
     el.previewVideo.src = result.video_url;
@@ -1214,6 +1246,125 @@ function closePreviewModal() {
     el.previewVideo.pause();
     el.previewVideo.src = '';
     el.previewModal.style.display = 'none';
+}
+
+function openYtPublishModalFromPreview() {
+    if (!state.activePublishResult || !state.activePublishResult.filename) {
+        showToast('Nenhum vídeo selecionado para publicar.', 'error');
+        return;
+    }
+    openYtPublishModal(state.activePublishResult.filename, state.activePublishResult.title || 'Short Viral');
+}
+
+function openYtPublishModal(filename, title) {
+    state.activePublishFilename = filename;
+    el.ytPubTitle.value = title || '';
+    el.ytPubDesc.value = '';
+    el.ytPubPrivacy.value = 'public';
+    el.ytScheduleGroup.style.display = 'none';
+
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(15, 0, 0, 0);
+    const localIso = new Date(tomorrow.getTime() - (tomorrow.getTimezoneOffset() * 60000)).toISOString().slice(0, 16);
+    el.ytPubScheduleDatetime.value = localIso;
+
+    el.ytPublishModal.style.display = 'flex';
+    generateAiMetadataForPublish();
+}
+
+function closeYtPublishModal() {
+    el.ytPublishModal.style.display = 'none';
+}
+
+async function generateAiMetadataForPublish() {
+    const baseTitle = el.ytPubTitle.value.trim() || 'Short Viral';
+    try {
+        showToast('Gerando título viral e hashtags com IA...', 'info');
+        const res = await fetch('/api/youtube/generate-metadata', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                base_title: baseTitle,
+                gemini_api_key: state.settings.geminiKey || null,
+                groq_api_key: state.settings.groqKey || null
+            })
+        });
+
+        if (!res.ok) throw new Error('Falha ao gerar metadados.');
+
+        const data = await res.json();
+        if (data.title) el.ytPubTitle.value = data.title;
+        if (data.description) el.ytPubDesc.value = data.description;
+        showToast('Metadados virais gerados!', 'success');
+    } catch (e) {
+        console.warn('Erro ao gerar metadados:', e);
+    }
+}
+
+async function submitYoutubePublish() {
+    const filename = state.activePublishFilename;
+    if (!filename) {
+        showToast('Selecione um vídeo para publicar.', 'error');
+        return;
+    }
+
+    const title = el.ytPubTitle.value.trim();
+    if (!title) {
+        showToast('Insira um título para o vídeo.', 'error');
+        el.ytPubTitle.focus();
+        return;
+    }
+
+    const description = el.ytPubDesc.value.trim();
+    const privacy = el.ytPubPrivacy.value;
+    let publishAtIso = null;
+
+    if (privacy === 'scheduled') {
+        const dtVal = el.ytPubScheduleDatetime.value;
+        if (!dtVal) {
+            showToast('Selecione a data e hora para o agendamento.', 'error');
+            return;
+        }
+        publishAtIso = new Date(dtVal).toISOString();
+    }
+
+    el.btnSubmitYtPublish.disabled = true;
+    el.btnSubmitYtPublish.innerHTML = '<i class="ri-loader-4-line ri-spin"></i> Enviando para o YouTube...';
+    showToast('Iniciando upload para o YouTube Shorts...', 'info');
+
+    try {
+        const res = await fetch('/api/youtube/upload', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                filename,
+                title,
+                description,
+                privacy_status: privacy === 'scheduled' ? 'private' : privacy,
+                publish_at_iso: publishAtIso
+            })
+        });
+
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({ detail: 'Erro ao enviar para o YouTube' }));
+            throw new Error(err.detail || 'Falha na publicação.');
+        }
+
+        const data = await res.json();
+        showToast(privacy === 'scheduled' ? 'Short agendado com sucesso no YouTube!' : 'Short publicado no YouTube com sucesso!', 'success');
+        closeYtPublishModal();
+
+        if (data.youtube_url) {
+            window.open(data.youtube_url, '_blank');
+        }
+
+    } catch (err) {
+        showToast(err.message, 'error');
+    } finally {
+        el.btnSubmitYtPublish.disabled = false;
+        el.btnSubmitYtPublish.innerHTML = '<i class="ri-upload-cloud-fill"></i> <span>Enviar para o YouTube Shorts</span>';
+    }
 }
 
 async function loadLibraryOutputs() {
@@ -1248,6 +1399,9 @@ async function loadLibraryOutputs() {
                     <button class="btn-primary btn-play-lib" style="padding:6px 12px;font-size:13px;">
                         <i class="ri-play-fill"></i> Assistir
                     </button>
+                    <button class="btn-secondary btn-pub-lib" style="padding:6px 12px;font-size:13px;color:#ff4d4d;">
+                        <i class="ri-youtube-fill"></i> Publicar
+                    </button>
                     <a class="btn-secondary" href="${file.download_url}" download="${escapeHtml(file.filename)}" style="padding:6px 12px;font-size:13px;text-decoration:none;">
                         <i class="ri-download-line"></i> Baixar
                     </a>
@@ -1264,6 +1418,10 @@ async function loadLibraryOutputs() {
                     download_url: file.download_url,
                     filename: file.filename
                 });
+            });
+
+            card.querySelector('.btn-pub-lib').addEventListener('click', () => {
+                openYtPublishModal(file.filename, file.filename);
             });
 
             card.querySelector('.btn-delete-lib').addEventListener('click', async () => {

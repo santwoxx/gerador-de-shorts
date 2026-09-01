@@ -19,6 +19,7 @@ from .transcriber import YouTubeTranscriber
 from .ai_clipper import AIClipper
 from .subtitle_generator import SubtitleGenerator
 from .video_processor import VideoProcessor
+from .youtube_publisher import YouTubePublisher
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 logger = logging.getLogger("autoshorts")
@@ -762,6 +763,75 @@ async def stream_video(filename: str):
 async def download_video_file(filename: str):
     file_path = os.path.join(OUTPUTS_DIR, filename)
     return _get_file_response(file_path, filename, as_attachment=True)
+
+
+yt_publisher = YouTubePublisher()
+
+
+class YTMetadataRequest(BaseModel):
+    base_title: str
+    transcript_snippet: Optional[str] = ""
+    gemini_api_key: Optional[str] = None
+    groq_api_key: Optional[str] = None
+
+
+class YTUploadRequest(BaseModel):
+    filename: str
+    title: str
+    description: str
+    tags: Optional[list] = None
+    privacy_status: str = "private"  # 'public', 'private', 'unlisted'
+    publish_at_iso: Optional[str] = None  # Agendamento ISO string
+
+
+@app.post("/api/youtube/generate-metadata")
+async def generate_youtube_metadata(req: YTMetadataRequest):
+    return yt_publisher.generate_shorts_metadata(
+        base_title=req.base_title,
+        transcript_snippet=req.transcript_snippet or "",
+        gemini_api_key=req.gemini_api_key,
+        groq_api_key=req.groq_api_key,
+    )
+
+
+@app.post("/api/youtube/upload")
+async def upload_to_youtube(req: YTUploadRequest):
+    if not req.filename or "/" in req.filename or "\\" in req.filename:
+        raise HTTPException(status_code=400, detail="Nome de arquivo inválido.")
+
+    video_path = os.path.join(OUTPUTS_DIR, req.filename)
+    if not os.path.isfile(video_path):
+        raise HTTPException(status_code=404, detail="Vídeo MP4 não encontrado para upload.")
+
+    try:
+        res = yt_publisher.upload_video(
+            video_path=video_path,
+            title=req.title,
+            description=req.description,
+            tags=req.tags,
+            privacy_status=req.privacy_status,
+            publish_at_iso=req.publish_at_iso,
+        )
+        return res
+    except Exception as e:
+        logger.exception("Erro no upload do YouTube")
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.get("/api/youtube/status")
+async def get_youtube_status():
+    return {"is_configured": yt_publisher.is_configured()}
+
+
+@app.post("/api/youtube/credentials")
+async def save_youtube_credentials(file: UploadFile = File(...)):
+    content = await file.read()
+    try:
+        secrets_dict = json.loads(content.decode("utf-8"))
+        yt_publisher.save_client_secrets(secrets_dict)
+        return {"status": "success", "message": "Credenciais salvas com sucesso!"}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Arquivo JSON de credenciais inválido: {e}")
 
 
 @app.get("/api/health")

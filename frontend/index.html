@@ -353,6 +353,9 @@
                         <a id="btn-download-short" class="btn-primary" href="#" download>
                             <i class="ri-download-2-fill"></i> Baixar Short (.MP4)
                         </a>
+                        <button id="btn-open-yt-publish" class="btn-secondary btn-yt-action">
+                            <i class="ri-youtube-fill" style="color:#ff0000;"></i> Publicar / Agendar no YouTube
+                        </button>
                         <button id="btn-copy-title" class="btn-secondary">
                             <i class="ri-file-copy-line"></i> Copiar Título
                         </button>
@@ -542,6 +545,71 @@
                                 <i class="ri-bookmark-3-line"></i> Salvar Predefinição
                             </button>
                         </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- YouTube Publish & Schedule Modal -->
+        <div class="modal-overlay" id="yt-publish-modal" style="display: none;">
+            <div class="modal-card glass-panel yt-publish-card">
+                <div class="modal-header">
+                    <div class="modal-title-group">
+                        <i class="ri-youtube-fill" style="color: #ff0000; font-size: 24px;"></i>
+                        <h3>Publicar / Programar no YouTube Shorts</h3>
+                    </div>
+                    <button class="btn-close-modal-inline" id="btn-close-yt-publish">
+                        <i class="ri-close-line"></i>
+                    </button>
+                </div>
+
+                <div class="yt-publish-body">
+                    <!-- Title group with AI button -->
+                    <div class="setting-group">
+                        <div class="label-with-btn">
+                            <label for="yt-pub-title"><strong>Título do Short:</strong></label>
+                            <button id="btn-ai-gen-meta" class="btn-text-action" type="button">
+                                <i class="ri-sparkling-fill"></i> Gerar Metadados com IA
+                            </button>
+                        </div>
+                        <input type="text" id="yt-pub-title" placeholder="Título atraente com emojis (máx 100 caracteres)">
+                    </div>
+
+                    <!-- Description group -->
+                    <div class="setting-group">
+                        <label for="yt-pub-desc"><strong>Descrição & Hashtags:</strong></label>
+                        <textarea id="yt-pub-desc" rows="4" placeholder="Descrição chamativa com hashtags #Shorts #Viral..."></textarea>
+                    </div>
+
+                    <!-- Privacy & Schedule group -->
+                    <div class="setting-group-grid">
+                        <div class="setting-group">
+                            <label for="yt-pub-privacy"><strong>Visibilidade / Modo:</strong></label>
+                            <select id="yt-pub-privacy">
+                                <option value="public">🌐 Público (Publicar Imediatamente)</option>
+                                <option value="unlisted">🔗 Não Listado (Apenas com Link)</option>
+                                <option value="private">🔒 Privado (Salvar Rascunho)</option>
+                                <option value="scheduled">📅 Programado / Agendado</option>
+                            </select>
+                        </div>
+
+                        <div class="setting-group" id="yt-schedule-group" style="display: none;">
+                            <label for="yt-pub-schedule-datetime"><strong>Data e Hora da Publicação:</strong></label>
+                            <input type="datetime-local" id="yt-pub-schedule-datetime">
+                        </div>
+                    </div>
+
+                    <!-- Authorization Credentials Status -->
+                    <div class="yt-auth-notice" id="yt-auth-notice">
+                        <i class="ri-information-line"></i>
+                        <span>Na primeira publicação, uma janela do navegador abrirá para você autorizar sua conta do YouTube.</span>
+                    </div>
+
+                    <!-- Publish Action Button & Progress -->
+                    <div class="yt-publish-footer">
+                        <button id="btn-submit-yt-publish" class="btn-primary btn-publish-red">
+                            <i class="ri-upload-cloud-fill"></i> <span>Enviar para o YouTube Shorts</span>
+                        </button>
                     </div>
                 </div>
             </div>
