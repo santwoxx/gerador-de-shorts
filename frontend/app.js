@@ -483,8 +483,9 @@ function updateWmLivePreview() {
     } else {
         el.wmPreviewText.style.display = 'none';
         el.wmPreviewImg.style.display = 'block';
-        if (imgName) {
-            el.wmPreviewImg.src = `/storage/watermarks/${imgName}`;
+        const activeImg = imgName || (type === 'full_overlay' ? 'gato_galudo_overlay.png' : '');
+        if (activeImg) {
+            el.wmPreviewImg.src = `/storage/watermarks/${activeImg}`;
         } else {
             el.wmPreviewImg.src = '';
         }
@@ -504,6 +505,9 @@ function updateWmLivePreview() {
         overlayEl.style.left = '0';
         overlayEl.style.width = '100%';
         overlayEl.style.height = '100%';
+        el.wmPreviewImg.style.width = '100%';
+        el.wmPreviewImg.style.height = '100%';
+        el.wmPreviewImg.style.objectFit = 'contain';
     } else {
         const previewScalePx = Math.round((scale / 1080) * 270);
         if (type === 'image') {
@@ -840,6 +844,7 @@ async function generateSingleShort(clipId, title, start, end) {
     openProgressModal(false);
 
     const wm = watermarkState.current;
+    const activeWmImg = wm.image_name || (wm.type === 'full_overlay' ? 'gato_galudo_overlay.png' : null);
 
     try {
         const payload = {
@@ -853,7 +858,7 @@ async function generateSingleShort(clipId, title, start, end) {
             watermark_type: wm.type,
             watermark_text: wm.text,
             watermark_position: wm.position,
-            watermark_image_name: wm.image_name,
+            watermark_image_name: activeWmImg,
             watermark_scale: wm.scale,
             watermark_opacity: wm.opacity,
             react_cam_pos: el.cfgReactCamPos ? el.cfgReactCamPos.value : 'bottom_right',
@@ -913,6 +918,7 @@ async function generateAllShorts() {
     openProgressModal(true, clipsData.length);
 
     const wm = watermarkState.current;
+    const activeWmImg = wm.image_name || (wm.type === 'full_overlay' ? 'gato_galudo_overlay.png' : null);
 
     try {
         const payload = {
@@ -923,7 +929,7 @@ async function generateAllShorts() {
             watermark_type: wm.type,
             watermark_text: wm.text,
             watermark_position: wm.position,
-            watermark_image_name: wm.image_name,
+            watermark_image_name: activeWmImg,
             watermark_scale: wm.scale,
             watermark_opacity: wm.opacity,
             react_cam_pos: el.cfgReactCamPos ? el.cfgReactCamPos.value : 'bottom_right',

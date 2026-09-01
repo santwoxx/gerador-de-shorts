@@ -1,0 +1,35 @@
+[
+  {
+    "id": "gato_galudo_916",
+    "name": "🎬 Gato Galudo 9:16 Overlay",
+    "type": "full_overlay",
+    "text": "@GatoGaludoClips",
+    "position": "full_916",
+    "scale": 1080,
+    "opacity": 1.0,
+    "image_name": "gato_galudo_overlay.png",
+    "badge": "Overlay 9:16"
+  },
+  {
+    "id": "canal_top_right",
+    "name": "🔥 Canal Topo Direito",
+    "type": "text",
+    "text": "@meucanal",
+    "position": "top_right",
+    "scale": 250,
+    "opacity": 0.9,
+    "image_name": null,
+    "badge": "Texto"
+  },
+  {
+    "id": "selo_bottom_center",
+    "name": "⚡ Selo Rodapé Centro",
+    "type": "text",
+    "text": "CORTES VIRIS",
+    "position": "bottom_center",
+    "scale": 220,
+    "opacity": 0.85,
+    "image_name": null,
+    "badge": "Texto"
+  }
+]
