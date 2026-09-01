@@ -101,6 +101,9 @@ const el = {
     settingProvider: document.getElementById('setting-provider'),
     settingGeminiKey: document.getElementById('setting-gemini-key'),
     settingGroqKey: document.getElementById('setting-groq-key'),
+    statDownloadsMb: document.getElementById('stat-downloads-mb'),
+    statOutputsMb: document.getElementById('stat-outputs-mb'),
+    btnClearCache: document.getElementById('btn-clear-cache'),
     btnViewLibrary: document.getElementById('btn-view-library'),
     librarySection: document.getElementById('library-section'),
     libraryGrid: document.getElementById('library-grid'),
@@ -206,6 +209,36 @@ function persistState() {
     }
 }
 
+async function fetchStorageStats() {
+    try {
+        const res = await fetch('/api/storage-stats');
+        if (!res.ok) return;
+        const stats = await res.json();
+        if (el.statDownloadsMb) el.statDownloadsMb.textContent = `${stats.downloads_mb} MB`;
+        if (el.statOutputsMb) el.statOutputsMb.textContent = `${stats.outputs_mb} MB`;
+    } catch (e) {
+        console.warn('Erro ao obter estatísticas de disco:', e);
+    }
+}
+
+async function clearDiskCache() {
+    if (!confirm('Deseja apagar os vídeos fonte baixados para liberar espaço em disco?\n(Seus Shorts já gerados NÃO serão apagados)')) {
+        return;
+    }
+
+    try {
+        showToast('Limpando cache de vídeos fonte...', 'info');
+        const res = await fetch('/api/clear-cache', { method: 'POST' });
+        if (!res.ok) throw new Error('Erro ao limpar cache');
+
+        const data = await res.json();
+        showToast(`${data.freed_mb} MB liberados com sucesso! (${data.cleared_files} arquivos)`, 'success');
+        fetchStorageStats();
+    } catch (err) {
+        showToast(err.message, 'error');
+    }
+}
+
 function updateSequentialBanner() {
     const isSequential = el.cfgClipMode.value === 'sequential';
     if (el.sequentialInfoBanner) {
@@ -248,12 +281,16 @@ function setupEventListeners() {
     el.btnAnalyze.addEventListener('click', analyzeVideo);
 
     el.btnOpenSettings.addEventListener('click', () => {
+        fetchStorageStats();
         el.settingsModal.style.display = 'flex';
     });
     el.btnCloseSettings.addEventListener('click', () => {
         el.settingsModal.style.display = 'none';
     });
     el.btnSaveSettings.addEventListener('click', saveSettingsFromUI);
+    if (el.btnClearCache) {
+        el.btnClearCache.addEventListener('click', clearDiskCache);
+    }
 
     el.btnViewLibrary.addEventListener('click', () => {
         const isHidden = el.librarySection.style.display === 'none';

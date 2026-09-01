@@ -637,6 +637,64 @@ async def list_watermark_images():
     return files
 
 
+def _get_dir_size_mb(directory: str) -> float:
+    total = 0
+    if os.path.isdir(directory):
+        for dirpath, dirnames, filenames in os.walk(directory):
+            for f in filenames:
+                fp = os.path.join(dirpath, f)
+                if os.path.isfile(fp) and not f.endswith(".gitkeep"):
+                    total += os.path.getsize(fp)
+    return round(total / (1024 * 1024), 2)
+
+
+@app.get("/api/storage-stats")
+async def get_storage_stats():
+    downloads_mb = _get_dir_size_mb(DOWNLOADS_DIR)
+    outputs_mb = _get_dir_size_mb(OUTPUTS_DIR)
+    subtitles_mb = _get_dir_size_mb(SUBTITLES_DIR)
+    return {
+        "downloads_mb": downloads_mb,
+        "outputs_mb": outputs_mb,
+        "subtitles_mb": subtitles_mb,
+        "total_mb": round(downloads_mb + outputs_mb + subtitles_mb, 2)
+    }
+
+
+@app.post("/api/clear-cache")
+async def clear_cache():
+    cleared_files = 0
+    cleared_bytes = 0
+
+    if os.path.isdir(DOWNLOADS_DIR):
+        for f in os.listdir(DOWNLOADS_DIR):
+            if f.endswith(".gitkeep"):
+                continue
+            fp = os.path.join(DOWNLOADS_DIR, f)
+            if os.path.isfile(fp):
+                sz = os.path.getsize(fp)
+                os.remove(fp)
+                cleared_files += 1
+                cleared_bytes += sz
+
+    if os.path.isdir(SUBTITLES_DIR):
+        for f in os.listdir(SUBTITLES_DIR):
+            if f.endswith(".gitkeep"):
+                continue
+            fp = os.path.join(SUBTITLES_DIR, f)
+            if os.path.isfile(fp):
+                sz = os.path.getsize(fp)
+                os.remove(fp)
+                cleared_files += 1
+                cleared_bytes += sz
+
+    return {
+        "status": "success",
+        "cleared_files": cleared_files,
+        "freed_mb": round(cleared_bytes / (1024 * 1024), 2)
+    }
+
+
 @app.get("/api/outputs")
 async def list_outputs():
     files = []

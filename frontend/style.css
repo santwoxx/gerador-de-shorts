@@ -1688,3 +1688,46 @@ body {
     font-size: 14px;
 }
 
+/* Cache Box & Storage Stats */
+.cache-box {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 14px 16px;
+    background: rgba(0, 0, 0, 0.25);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    margin-top: 6px;
+}
+
+.cache-info-stats {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.cache-info-stats strong {
+    color: var(--accent-gold);
+    font-family: var(--font-heading);
+}
+
+.btn-clear-cache {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: var(--accent-rose);
+    border-color: rgba(244, 63, 94, 0.3);
+    font-size: 13px;
+    padding: 10px 14px;
+    transition: all 0.25s ease;
+}
+
+.btn-clear-cache:hover {
+    background: rgba(244, 63, 94, 0.15);
+    border-color: var(--accent-rose);
+}
+
+
