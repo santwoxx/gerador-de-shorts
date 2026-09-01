@@ -235,18 +235,24 @@ def _run_short_generation_task(task_id: str, req: GenerateShortRequest):
 
         segments = transcriber.get_transcript(req.url, video_metadata=meta)
 
-        with tasks_lock:
-            tasks[task_id]["progress"] = 25
-            tasks[task_id]["message"] = f"Gerando estilo de legenda '{req.subtitle_style}'..."
+        ass_path = None
+        if req.subtitle_style and req.subtitle_style != "none":
+            with tasks_lock:
+                tasks[task_id]["progress"] = 25
+                tasks[task_id]["message"] = f"Gerando estilo de legenda '{req.subtitle_style}'..."
 
-        ass_filename = f"sub_{task_id}.ass"
-        ass_path = subtitle_gen.generate_ass_subtitles(
-            transcript_segments=segments,
-            clip_start=req.start,
-            clip_end=req.end,
-            style_preset=req.subtitle_style,
-            output_filename=ass_filename,
-        )
+            ass_filename = f"sub_{task_id}.ass"
+            ass_path = subtitle_gen.generate_ass_subtitles(
+                transcript_segments=segments,
+                clip_start=req.start,
+                clip_end=req.end,
+                style_preset=req.subtitle_style,
+                output_filename=ass_filename,
+            )
+        else:
+            with tasks_lock:
+                tasks[task_id]["progress"] = 25
+                tasks[task_id]["message"] = "Modo 'Sem Legenda' selecionado, gerando vídeo limpo..."
 
         def dl_progress(pct: float):
             mapped = 40 + int((pct / 100.0) * 15)
