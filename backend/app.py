@@ -84,8 +84,8 @@ class AnalyzeRequest(BaseModel):
     url: str
     gemini_api_key: Optional[str] = None
     groq_api_key: Optional[str] = None
-    min_duration: int = 30
-    max_duration: int = 60
+    min_duration: float = 30.0
+    max_duration: float = 60.0
     max_clips: int = 5
     provider: str = "auto"
     clip_mode: str = "viral_highlights"
@@ -103,9 +103,9 @@ class AnalyzeRequest(BaseModel):
 
     @field_validator("min_duration", "max_duration")
     @classmethod
-    def validate_durations(cls, v: int) -> int:
-        if v < 10 or v > 300:
-            raise ValueError("Duracao deve estar entre 10 e 300 segundos")
+    def validate_durations(cls, v: float) -> float:
+        if v < 0 or v > 7200:
+            raise ValueError("O tempo deve estar entre 0 e 7200 segundos")
         return v
 
     @field_validator("max_clips")
@@ -118,8 +118,8 @@ class AnalyzeRequest(BaseModel):
     @field_validator("clip_mode")
     @classmethod
     def validate_clip_mode(cls, v: str) -> str:
-        if v not in ("viral_highlights", "sequential"):
-            raise ValueError("clip_mode deve ser 'viral_highlights' ou 'sequential'")
+        if v not in ("viral_highlights", "sequential", "custom_manual"):
+            raise ValueError("clip_mode deve ser 'viral_highlights', 'sequential' ou 'custom_manual'")
         return v
 
 

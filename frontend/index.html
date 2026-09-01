@@ -139,6 +139,7 @@
                     <select id="cfg-clip-mode">
                         <option value="viral_highlights">🧠 Highlights Virais (IA seleciona os melhores)</option>
                         <option value="sequential">✂️ Fatiamento Sequencial (Divide o vídeo inteiro)</option>
+                        <option value="custom_manual">🎯 Corte Manual Exato (Início e Fim Personalizados)</option>
                     </select>
                 </div>
 
@@ -183,6 +184,37 @@
                         </div>
                         <button type="button" id="btn-seq-generate-now" class="btn-primary btn-seq-gen">
                             <i class="ri-flashlight-fill"></i> Fatiar e Gerar este Lote Agora
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Manual Custom Timestamp Control Panel -->
+            <div id="custom-manual-panel" class="sequential-info-banner glass-panel" style="display: none;">
+                <div class="seq-info-icon" style="background: rgba(245, 158, 11, 0.2); color: #f59e0b;">
+                    <i class="ri-timer-flash-fill"></i>
+                </div>
+                <div class="seq-info-content">
+                    <div class="seq-header-row">
+                        <h4>Painel de Corte Manual Exato (Segundos Personalizados)</h4>
+                        <span class="badge-manual-live" id="manual-dur-badge">Duração: 3.43s</span>
+                    </div>
+                    
+                    <div class="manual-inputs-grid">
+                        <div class="manual-field">
+                            <label for="cfg-manual-start">Segundo Inicial (Início):</label>
+                            <input type="number" id="cfg-manual-start" step="0.01" min="0" value="28.00" class="config-number-input">
+                        </div>
+                        <div class="manual-field">
+                            <label for="cfg-manual-end">Segundo Final (Fim):</label>
+                            <input type="number" id="cfg-manual-end" step="0.01" min="0" value="31.43" class="config-number-input">
+                        </div>
+                        <div class="manual-field flex-2">
+                            <label for="cfg-manual-title">Título Personalizado:</label>
+                            <input type="text" id="cfg-manual-title" value="Corte Exato (28.00s a 31.43s)" class="config-text-input">
+                        </div>
+                        <button type="button" id="btn-generate-manual-now" class="btn-primary btn-manual-gen">
+                            <i class="ri-flashlight-fill"></i> Gerar Short Com Tempo Exato
                         </button>
                     </div>
                 </div>

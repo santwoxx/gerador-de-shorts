@@ -574,6 +574,73 @@ body {
     box-shadow: 0 6px 20px rgba(16, 185, 129, 0.5);
 }
 
+/* Manual Custom Timestamp Control Panel */
+.badge-manual-live {
+    background: rgba(245, 158, 11, 0.2);
+    color: #f59e0b;
+    border: 1px solid rgba(245, 158, 11, 0.4);
+    padding: 4px 10px;
+    border-radius: var(--radius-sm);
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.manual-inputs-grid {
+    display: flex;
+    align-items: flex-end;
+    gap: 14px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+}
+
+.manual-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex: 1;
+    min-width: 120px;
+}
+
+.manual-field.flex-2 {
+    flex: 2;
+    min-width: 200px;
+}
+
+.manual-field label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.config-text-input {
+    background: var(--bg-input);
+    border: 1px solid var(--border-subtle);
+    color: #fff;
+    padding: 8px 12px;
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.2s ease;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.config-text-input:focus {
+    border-color: #f59e0b;
+}
+
+.btn-manual-gen {
+    padding: 9px 18px;
+    font-size: 13px;
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3);
+    white-space: nowrap;
+}
+
+.btn-manual-gen:hover {
+    box-shadow: 0 6px 20px rgba(245, 158, 11, 0.5);
+}
+
 /* ==========================================================================
    REACT & SPLIT-SCREEN OPTIMIZATION PANEL
    ========================================================================== */

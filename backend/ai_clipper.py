@@ -73,17 +73,28 @@ class AIClipper:
         clip_mode: str = "viral_highlights",
         start_clip_offset: int = 1,
     ) -> List[Dict[str, Any]]:
+        # Se o usuário escolheu Corte Manual Exato (ex: 28.00s a 31.43s)
+        if clip_mode == "custom_manual":
+            start_t = float(min_duration) if min_duration >= 0 else 0.0
+            end_t = float(max_duration) if max_duration > start_t else start_t + 30.0
+            dur = round(end_t - start_t, 2)
+            logger.info("Modo de corte manual exato ativado: %.2fs a %.2fs", start_t, end_t)
+            return [{
+                "id": "clip_custom_1",
+                "title": f"Corte Personalizado ({start_t}s - {end_t}s)",
+                "start": start_t,
+                "end": end_t,
+                "duration": dur,
+                "score": 99,
+                "hook": f"Trecho exato selecionado: {start_t}s a {end_t}s",
+                "explanation": f"Corte manual personalizado ({start_t}s até {end_t}s).",
+                "transcript_snippet": f"Corte manual exato de {start_t}s a {end_t}s.",
+                "virality_score": 99,
+                "reasoning": f"Intervalo customizado de {start_t}s a {end_t}s ({dur}s)",
+            }]
+
         if not transcript_segments:
             return []
-
-        total_video_duration = float(video_metadata.get("duration", 0) or 0)
-        if not total_video_duration and transcript_segments:
-            total_video_duration = transcript_segments[-1]["end"]
-
-        # Se o usuário escolheu o modo Sequencial / Fatiamento Completo por Lotes
-        if clip_mode == "sequential":
-            logger.info("Modo de fatiamento sequencial por lotes ativado (Shorts %d em diante, max %d)", start_clip_offset, max_clips)
-            return self._slice_sequential(transcript_segments, video_metadata, min_duration, max_duration, max_clips, total_video_duration, start_clip_offset)
 
         if preferred_provider in ("auto", "gemini") and self.gemini_api_key:
             try:

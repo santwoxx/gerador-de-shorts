@@ -59,6 +59,12 @@ const el = {
     sequentialInfoBanner: document.getElementById('sequential-info-banner'),
     seqInfoText: document.getElementById('seq-info-text'),
     btnSeqGenerateNow: document.getElementById('btn-seq-generate-now'),
+    customManualPanel: document.getElementById('custom-manual-panel'),
+    cfgManualStart: document.getElementById('cfg-manual-start'),
+    cfgManualEnd: document.getElementById('cfg-manual-end'),
+    cfgManualTitle: document.getElementById('cfg-manual-title'),
+    manualDurBadge: document.getElementById('manual-dur-badge'),
+    btnGenerateManualNow: document.getElementById('btn-generate-manual-now'),
     reactConfigPanel: document.getElementById('react-config-panel'),
     cfgReactCamPos: document.getElementById('cfg-react-cam-pos'),
     cfgReactCamOrder: document.getElementById('cfg-react-cam-order'),
@@ -255,9 +261,17 @@ async function clearDiskCache() {
 
 function updateSequentialBanner() {
     const isSequential = el.cfgClipMode.value === 'sequential';
+    const isCustomManual = el.cfgClipMode.value === 'custom_manual';
+
     if (el.sequentialInfoBanner) {
         el.sequentialInfoBanner.style.display = isSequential ? 'flex' : 'none';
     }
+
+    if (el.customManualPanel) {
+        el.customManualPanel.style.display = isCustomManual ? 'flex' : 'none';
+        if (isCustomManual) updateManualDurationBadge();
+    }
+
     if (isSequential) {
         const count = parseInt(el.cfgMaxClips.value, 10) || 5;
         const dur = parseInt(el.cfgClipDuration.value, 10) || 60;
@@ -281,6 +295,14 @@ function updateSequentialBanner() {
     }
 }
 
+function updateManualDurationBadge() {
+    if (!el.cfgManualStart || !el.cfgManualEnd || !el.manualDurBadge) return;
+    const start = parseFloat(el.cfgManualStart.value) || 0;
+    const end = parseFloat(el.cfgManualEnd.value) || 0;
+    const dur = Math.max(0, end - start);
+    el.manualDurBadge.textContent = `Duração: ${dur.toFixed(2)}s`;
+}
+
 function setupEventListeners() {
     el.cfgLayoutMode.addEventListener('change', () => {
         if (el.reactConfigPanel) {
@@ -294,6 +316,9 @@ function setupEventListeners() {
     if (el.cfgStartOffset) {
         el.cfgStartOffset.addEventListener('input', updateSequentialBanner);
     }
+    if (el.cfgManualStart) el.cfgManualStart.addEventListener('input', updateManualDurationBadge);
+    if (el.cfgManualEnd) el.cfgManualEnd.addEventListener('input', updateManualDurationBadge);
+    if (el.btnGenerateManualNow) el.btnGenerateManualNow.addEventListener('click', analyzeVideo);
 
     document.querySelectorAll('.btn-seq-batch').forEach(btn => {
         btn.addEventListener('click', (e) => {
@@ -744,6 +769,9 @@ async function analyzeVideo() {
     if (clipMode === 'sequential') {
         minDur = clipDuration;
         maxDur = clipDuration;
+    } else if (clipMode === 'custom_manual') {
+        minDur = parseFloat(el.cfgManualStart ? el.cfgManualStart.value : 0) || 0;
+        maxDur = parseFloat(el.cfgManualEnd ? el.cfgManualEnd.value : 30) || (minDur + 30);
     } else {
         minDur = Math.max(15, Math.floor(clipDuration * 0.5));
         maxDur = clipDuration;
@@ -886,12 +914,12 @@ function renderClipsGrid(clips) {
             <div class="time-trim-box">
                 <div class="trim-group">
                     <label>Início (s):</label>
-                    <input type="number" step="0.5" class="trim-input" id="start-${clip.id}" value="${clip.start}">
+                    <input type="number" step="0.01" class="trim-input" id="start-${clip.id}" value="${clip.start}">
                 </div>
                 <i class="ri-arrow-right-line" style="color: var(--text-muted);"></i>
                 <div class="trim-group">
                     <label>Fim (s):</label>
-                    <input type="number" step="0.5" class="trim-input" id="end-${clip.id}" value="${clip.end}">
+                    <input type="number" step="0.01" class="trim-input" id="end-${clip.id}" value="${clip.end}">
                 </div>
             </div>
             <details class="clip-snippet-accordion">
