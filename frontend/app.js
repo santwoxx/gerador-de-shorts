@@ -1396,16 +1396,16 @@ async function loadLibraryOutputs() {
                 </div>
                 <div class="library-card-title" title="${escapeHtml(file.filename)}">${escapeHtml(file.filename)}</div>
                 <div class="library-card-actions">
-                    <button class="btn-primary btn-play-lib" style="padding:6px 12px;font-size:13px;">
+                    <button class="btn-primary btn-play-lib">
                         <i class="ri-play-fill"></i> Assistir
                     </button>
-                    <button class="btn-secondary btn-pub-lib" style="padding:6px 12px;font-size:13px;color:#ff4d4d;">
+                    <button class="btn-secondary btn-pub-lib" style="color:#ff4d4d;">
                         <i class="ri-youtube-fill"></i> Publicar
                     </button>
-                    <a class="btn-secondary" href="${file.download_url}" download="${escapeHtml(file.filename)}" style="padding:6px 12px;font-size:13px;text-decoration:none;">
+                    <a class="btn-secondary" href="${file.download_url}" download="${escapeHtml(file.filename)}">
                         <i class="ri-download-line"></i> Baixar
                     </a>
-                    <button class="btn-icon btn-delete-lib" style="padding:6px 10px;color:var(--accent-rose);" title="Excluir">
+                    <button class="btn-delete-lib" title="Excluir Short">
                         <i class="ri-delete-bin-line"></i>
                     </button>
                 </div>`;
