@@ -12,7 +12,37 @@ CACHE_TTL = 1800
 
 class YouTubeTranscriber:
     def __init__(self):
-        pass
+        # Preenchido pelo app com downloader.fetch_captions: usa os cookies
+        # salvos para pegar legendas de videos com restricao de idade.
+        self._caption_provider: Optional[Any] = None
+
+    def set_caption_provider(self, provider: Any) -> None:
+        self._caption_provider = provider
+
+    def _cookie_session(self):
+        """Sessao HTTP com os cookies do YouTube, quando houver."""
+        try:
+            from .cookies_manager import find_cookie_file
+            cookie_file = find_cookie_file()
+            if not cookie_file:
+                return None
+
+            import requests
+            from http.cookiejar import MozillaCookieJar
+
+            jar = MozillaCookieJar(cookie_file)
+            jar.load(ignore_discard=True, ignore_expires=True)
+            session = requests.Session()
+            session.cookies = jar
+            session.headers.update({
+                "User-Agent": ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                               "(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"),
+                "Accept-Language": "pt-BR,pt;q=0.9,en;q=0.8",
+            })
+            return session
+        except Exception as e:
+            logger.debug("Nao foi possivel montar a sessao com cookies: %s", e)
+            return None
 
     def extract_video_id(self, url_or_id: str) -> str:
         if len(url_or_id) == 11 and not ("/" in url_or_id or "." in url_or_id):
@@ -58,7 +88,20 @@ class YouTubeTranscriber:
         except Exception as e:
             logger.warning("Falha ao obter legendas oficiais do YouTube para %s: %s", video_id, e)
 
-        # 2. Fallback: Cria segmentação inteligente por timeline quando o vídeo não possui legendas (ex: clipes musicais, gameplays)
+        # 2. Plano B: legendas pelo yt-dlp (com cookies). É o caminho que
+        # funciona em vídeos com restrição de idade, onde a API pública é bloqueada.
+        if self._caption_provider:
+            try:
+                result = self._caption_provider(url_or_id, preferred_languages)
+                result = self._clean_segments(result or [])
+                if result:
+                    logger.info("Legendas obtidas via yt-dlp para %s (%d segmentos)", video_id, len(result))
+                    _transcript_cache[video_id] = (time.time(), result)
+                    return result
+            except Exception as e:
+                logger.warning("Falha ao obter legendas via yt-dlp para %s: %s", video_id, str(e)[:200])
+
+        # 3. Fallback: Cria segmentação inteligente por timeline quando o vídeo não possui legendas (ex: clipes musicais, gameplays)
         logger.info("Gerando segmentação temporal inteligente para %s", video_id)
         fallback_segments = self._generate_fallback_segments(video_metadata)
         _transcript_cache[video_id] = (time.time(), fallback_segments)
@@ -69,11 +112,21 @@ class YouTubeTranscriber:
     ) -> List[Dict[str, Any]]:
         from youtube_transcript_api import YouTubeTranscriptApi
 
-        # Suporte a youtube-transcript-api v1.2.4+ (instanciável) e versões legadas
-        try:
-            ytt = YouTubeTranscriptApi()
-        except Exception:
-            ytt = YouTubeTranscriptApi
+        # Suporte a youtube-transcript-api v1.2.4+ (instanciável) e versões legadas.
+        # Quando há cookies salvos, envia a sessão logada junto: sem isso o
+        # YouTube devolve "Subtitles are disabled" em vídeos com restrição de idade.
+        session = self._cookie_session()
+        ytt = None
+        if session is not None:
+            try:
+                ytt = YouTubeTranscriptApi(http_client=session)
+            except Exception:
+                ytt = None
+        if ytt is None:
+            try:
+                ytt = YouTubeTranscriptApi()
+            except Exception:
+                ytt = YouTubeTranscriptApi
 
         # 1. Tenta listar transcrições disponíveis
         try:

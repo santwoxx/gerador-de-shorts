@@ -1,6 +1,9 @@
 fastapi>=0.115.0
 uvicorn>=0.30.0
 yt-dlp>=2024.8.0
+# Resolve o desafio JS do YouTube. Sem ele o YouTube devolve o video
+# sem formatos utilizaveis. Precisa tambem de Node.js 22+ instalado.
+yt-dlp-ejs>=0.8.0
 youtube-transcript-api>=0.6.2
 imageio-ffmpeg>=0.5.1
 google-genai>=0.1.0

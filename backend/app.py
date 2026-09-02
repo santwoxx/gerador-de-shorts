@@ -1,5 +1,6 @@
 import os
 import re
+import json
 import uuid
 import time
 import asyncio
@@ -14,11 +15,13 @@ from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, field_validator
 
-from .downloader import YouTubeDownloader
+from .downloader import YouTubeDownloader, is_cookie_error, js_runtime_status
+from . import cookies_manager
 from .transcriber import YouTubeTranscriber
 from .ai_clipper import AIClipper
 from .subtitle_generator import SubtitleGenerator
 from .video_processor import VideoProcessor
+from .video_editor import VideoEditor, LIMITS as EDIT_LIMITS
 from .youtube_publisher import YouTubePublisher
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
@@ -43,12 +46,17 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["X-Needs-Cookies"],
 )
 
 downloader = YouTubeDownloader(DOWNLOADS_DIR)
 transcriber = YouTubeTranscriber()
 subtitle_gen = SubtitleGenerator(SUBTITLES_DIR)
 video_proc = VideoProcessor(OUTPUTS_DIR)
+video_editor = VideoEditor(OUTPUTS_DIR, video_proc.ffmpeg_path)
+
+# Legendas de videos com restricao de idade so saem pelo yt-dlp (com cookies).
+transcriber.set_caption_provider(downloader.fetch_captions)
 
 tasks: Dict[str, Dict[str, Any]] = {}
 tasks_lock = threading.Lock()
@@ -157,6 +165,11 @@ class GenerateShortRequest(BaseModel):
 @app.on_event("startup")
 async def startup_event():
     logger.info("AutoShorts AI iniciado com sucesso")
+    js = js_runtime_status()
+    if js["ok"]:
+        logger.info("%s", js["message"])
+    else:
+        logger.warning("ATENCAO: %s", js["message"])
 
 
 @app.post("/api/analyze")
@@ -220,7 +233,9 @@ async def analyze_video(req: AnalyzeRequest):
         with tasks_lock:
             tasks[task_id]["status"] = "error"
             tasks[task_id]["error"] = str(e)
-        raise HTTPException(status_code=400, detail=str(e))
+        # Sinaliza ao frontend que o caso se resolve configurando os cookies.
+        headers = {"X-Needs-Cookies": "1"} if is_cookie_error(str(e)) else None
+        raise HTTPException(status_code=400, detail=str(e), headers=headers)
 
 
 def _run_short_generation_task(task_id: str, req: GenerateShortRequest):
@@ -326,6 +341,7 @@ def _run_short_generation_task(task_id: str, req: GenerateShortRequest):
             tasks[task_id]["status"] = "error"
             tasks[task_id]["progress"] = 0
             tasks[task_id]["error"] = str(e)
+            tasks[task_id]["needs_cookies"] = is_cookie_error(str(e))
             tasks[task_id]["message"] = f"Erro na renderizacao: {str(e)}"
 
 
@@ -462,7 +478,11 @@ def _run_batch_generation_task(batch_task_id: str, req: BatchGenerateRequest):
             }
         else:
             tasks[batch_task_id]["status"] = "error"
-            tasks[batch_task_id]["error"] = f"Todos os {total_clips} shorts falharam."
+            first_error = str(errors[0]) if errors else ""
+            tasks[batch_task_id]["error"] = (
+                f"Todos os {total_clips} shorts falharam." + (f" Motivo: {first_error}" if first_error else "")
+            )
+            tasks[batch_task_id]["needs_cookies"] = is_cookie_error(first_error)
             tasks[batch_task_id]["message"] = "Falha na geracao em lote."
 
     logger.info("Batch %s finalizado: %d/%d sucesso", batch_task_id, len(completed), total_clips)
@@ -842,9 +862,224 @@ async def save_youtube_credentials(file: UploadFile = File(...)):
         raise HTTPException(status_code=400, detail=f"Arquivo JSON de credenciais inválido: {e}")
 
 
+class EditShortRequest(BaseModel):
+    filename: str
+    speed: float = 1.0
+    preserve_pitch: bool = True
+    pitch_semitones: float = 0.0
+    volume: float = 1.0
+    mirror: bool = False
+    zoom: float = 1.0
+    brightness: float = 0.0
+    contrast: float = 1.0
+    saturation: float = 1.0
+    grain: float = 0.0
+    trim_start: float = 0.0
+    trim_end: float = 0.0
+
+    @field_validator("filename")
+    @classmethod
+    def validate_filename(cls, v: str) -> str:
+        v = (v or "").strip()
+        if not v.endswith(".mp4") or "/" in v or "\\" in v or ".." in v:
+            raise ValueError("Nome de arquivo invalido")
+        return v
+
+
+def _run_edit_task(task_id: str, req: EditShortRequest):
+    def _progress(pct: int, message: str):
+        with tasks_lock:
+            if task_id in tasks:
+                tasks[task_id]["progress"] = pct
+                tasks[task_id]["message"] = message
+
+    try:
+        result = video_editor.edit(
+            req.filename,
+            req.model_dump(exclude={"filename"}),
+            progress_callback=_progress,
+        )
+
+        with tasks_lock:
+            tasks[task_id]["status"] = "completed"
+            tasks[task_id]["progress"] = 100
+            tasks[task_id]["message"] = "Nova versao gerada com sucesso!"
+            tasks[task_id]["result"] = {
+                "title": result["filename"],
+                "filename": result["filename"],
+                "duration": result["duration"],
+                "size_mb": result["size_mb"],
+                "source_filename": result["source_filename"],
+                "source_duration": result["source_duration"],
+                "video_url": f"/api/stream/{result['filename']}",
+                "download_url": f"/api/download/{result['filename']}",
+            }
+
+        logger.info(
+            "Ajustes aplicados: %s -> %s (%.1fs -> %.1fs)",
+            result["source_filename"], result["filename"],
+            result["source_duration"], result["duration"],
+        )
+
+    except Exception as e:
+        logger.exception("Erro ao aplicar ajustes no short %s", task_id)
+        with tasks_lock:
+            tasks[task_id]["status"] = "error"
+            tasks[task_id]["progress"] = 0
+            tasks[task_id]["error"] = str(e)
+            tasks[task_id]["message"] = f"Erro ao aplicar os ajustes: {str(e)}"
+
+
+@app.get("/api/short-info/{filename}")
+async def short_info(filename: str):
+    """Duracao e tamanho de um Short da biblioteca (usado pelo painel de ajustes)."""
+    if not filename.endswith(".mp4") or "/" in filename or "\\" in filename or ".." in filename:
+        raise HTTPException(status_code=400, detail="Nome de arquivo invalido.")
+
+    path = os.path.join(OUTPUTS_DIR, filename)
+    if not os.path.isfile(path):
+        raise HTTPException(status_code=404, detail="Short nao encontrado.")
+
+    duration = await asyncio.get_running_loop().run_in_executor(
+        None, video_editor.probe_duration, path
+    )
+    return {
+        "filename": filename,
+        "duration": round(duration, 2),
+        "size_mb": round(os.path.getsize(path) / (1024 * 1024), 2),
+    }
+
+
+@app.post("/api/edit-short")
+async def edit_short(req: EditShortRequest):
+    _cleanup_old_tasks()
+
+    source_path = os.path.join(OUTPUTS_DIR, req.filename)
+    if not os.path.isfile(source_path):
+        raise HTTPException(status_code=404, detail="Short nao encontrado na biblioteca.")
+
+    task_id = str(uuid.uuid4())
+    with tasks_lock:
+        tasks[task_id] = {
+            "status": "processing",
+            "progress": 3,
+            "message": "Preparando os ajustes...",
+            "result": None,
+            "error": None,
+            "created_at": time.time(),
+        }
+
+    _executor.submit(_run_edit_task, task_id, req)
+    return {"task_id": task_id, "status": "processing"}
+
+
+@app.get("/api/edit-limits")
+async def edit_limits():
+    """Faixas aceitas por cada ajuste, para o frontend montar os controles."""
+    return {
+        name: {"min": low, "max": high, "default": default}
+        for name, (low, high, default) in EDIT_LIMITS.items()
+    }
+
+
+@app.get("/api/cookies/status")
+async def cookies_status_endpoint():
+    """Estado dos cookies + navegadores disponiveis para importacao."""
+    status = cookies_manager.cookies_status()
+    status["browsers"] = cookies_manager.available_browsers()
+    status["js_runtime"] = js_runtime_status()
+    return status
+
+
+@app.post("/api/cookies/upload")
+async def cookies_upload(file: UploadFile = File(...)):
+    """Recebe o cookies.txt (ou JSON) exportado pela extensao do navegador."""
+    content = await file.read()
+    if len(content) > 5 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="Arquivo de cookies excede 5MB.")
+    if len(content) < 20:
+        raise HTTPException(status_code=400, detail="Arquivo de cookies vazio ou muito pequeno.")
+
+    try:
+        text = content.decode("utf-8", errors="ignore")
+        status = cookies_manager.save_cookies_from_text(text)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.exception("Falha ao salvar cookies enviados")
+        raise HTTPException(status_code=400, detail=f"Falha ao salvar os cookies: {e}")
+
+    downloader.reset_strategy()
+    status["browsers"] = cookies_manager.available_browsers()
+    return status
+
+
+class CookiesTextRequest(BaseModel):
+    content: str
+
+
+@app.post("/api/cookies/text")
+async def cookies_paste(req: CookiesTextRequest):
+    """Aceita o conteudo do cookies.txt colado direto na interface."""
+    try:
+        status = cookies_manager.save_cookies_from_text(req.content, source="conteudo colado")
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.exception("Falha ao salvar cookies colados")
+        raise HTTPException(status_code=400, detail=f"Falha ao salvar os cookies: {e}")
+
+    downloader.reset_strategy()
+    status["browsers"] = cookies_manager.available_browsers()
+    return status
+
+
+class CookiesBrowserRequest(BaseModel):
+    browser: Optional[str] = None
+
+
+@app.post("/api/cookies/browser")
+async def cookies_from_browser(req: CookiesBrowserRequest):
+    """Importa a sessao logada direto do navegador instalado (sem extensao)."""
+    browser = (req.browser or "").strip().lower() or None
+    valid = {b["id"] for b in cookies_manager.available_browsers()}
+    if browser and browser not in valid:
+        raise HTTPException(status_code=400, detail=f"Navegador nao suportado: {browser}")
+
+    try:
+        # Executor padrao (nao o _executor): ler o navegador pode demorar e nao
+        # deve competir com as renderizacoes em andamento.
+        status = await asyncio.get_running_loop().run_in_executor(
+            None, cookies_manager.import_from_browser, browser
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.exception("Falha ao importar cookies do navegador")
+        raise HTTPException(status_code=400, detail=f"Falha ao importar cookies do navegador: {e}")
+
+    downloader.reset_strategy()
+    status["browsers"] = cookies_manager.available_browsers()
+    return status
+
+
+@app.delete("/api/cookies")
+async def cookies_delete():
+    status = cookies_manager.delete_cookies()
+    downloader.reset_strategy()
+    status["browsers"] = cookies_manager.available_browsers()
+    return status
+
+
 @app.get("/api/health")
 async def health_check():
-    return {"status": "ok", "version": "2.0.0", "tasks_active": len(tasks)}
+    return {
+        "status": "ok",
+        "version": "2.0.0",
+        "tasks_active": len(tasks),
+        "js_runtime": js_runtime_status(),
+        "cookies": cookies_manager.cookies_status()["configured"],
+    }
 
 
 app.mount("/storage/watermarks", StaticFiles(directory=WATERMARKS_DIR), name="watermarks")

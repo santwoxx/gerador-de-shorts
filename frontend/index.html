@@ -341,7 +341,7 @@
                     <div class="progress-icon-wrapper pulse-anim">
                         <i class="ri-movie-fill"></i>
                     </div>
-                    <h3 class="modal-title">Renderizando seu Short em 1080x1920</h3>
+                    <h3 class="modal-title" id="progress-modal-title">Renderizando seu Short em 1080x1920</h3>
                     <p class="modal-subtitle" id="progress-status-text">Iniciando pipeline de vídeo...</p>
                 </div>
 
@@ -409,10 +409,173 @@
                         <button id="btn-open-yt-publish" class="btn-secondary btn-yt-action">
                             <i class="ri-youtube-fill" style="color:#ff0000;"></i> Publicar / Agendar no YouTube
                         </button>
+                        <button id="btn-open-edit-short" class="btn-secondary">
+                            <i class="ri-equalizer-line"></i> Ajustes (velocidade, tom, espelho)
+                        </button>
                         <button id="btn-copy-title" class="btn-secondary">
                             <i class="ri-file-copy-line"></i> Copiar Título
                         </button>
                     </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Ajustes do Short Gerado (velocidade, tom, espelho, cor) -->
+        <div class="modal-overlay" id="edit-short-modal" style="display: none;">
+            <div class="modal-card glass-panel edit-short-card">
+                <div class="modal-header">
+                    <div class="modal-title-group">
+                        <i class="ri-equalizer-fill"></i>
+                        <h3>Ajustes do Short</h3>
+                    </div>
+                    <button class="btn-close-modal-inline" id="btn-close-edit-short">
+                        <i class="ri-close-line"></i>
+                    </button>
+                </div>
+
+                <div class="edit-short-body">
+                    <div class="edit-file-info">
+                        <i class="ri-film-fill"></i>
+                        <div>
+                            <strong id="edit-file-name">short.mp4</strong>
+                            <span id="edit-file-meta">Carregando informações...</span>
+                        </div>
+                    </div>
+
+                    <div class="edit-presets">
+                        <span class="edit-presets-label">Presets rápidos:</span>
+                        <button type="button" class="edit-preset-btn" data-preset="none">
+                            <i class="ri-refresh-line"></i> Original
+                        </button>
+                        <button type="button" class="edit-preset-btn" data-preset="subtle">
+                            <i class="ri-speed-mini-line"></i> Leve
+                        </button>
+                        <button type="button" class="edit-preset-btn" data-preset="medium">
+                            <i class="ri-speed-line"></i> Médio
+                        </button>
+                        <button type="button" class="edit-preset-btn" data-preset="strong">
+                            <i class="ri-flashlight-fill"></i> Forte
+                        </button>
+                    </div>
+
+                    <div class="edit-section">
+                        <h4><i class="ri-volume-up-line"></i> Áudio e Velocidade</h4>
+
+                        <div class="edit-control">
+                            <label for="edit-speed">Velocidade do vídeo e do áudio</label>
+                            <div class="edit-control-row">
+                                <input type="range" id="edit-speed" min="0.5" max="2" step="0.01" value="1">
+                                <output id="edit-speed-out">1.00x</output>
+                            </div>
+                        </div>
+
+                        <label class="edit-check">
+                            <input type="checkbox" id="edit-preserve-pitch" checked>
+                            <span>Manter o tom da voz ao acelerar <small>(desligue para o efeito "fita acelerada")</small></span>
+                        </label>
+
+                        <div class="edit-control">
+                            <label for="edit-pitch">Tom da voz (semitons)</label>
+                            <div class="edit-control-row">
+                                <input type="range" id="edit-pitch" min="-6" max="6" step="0.5" value="0">
+                                <output id="edit-pitch-out">0</output>
+                            </div>
+                        </div>
+
+                        <div class="edit-control">
+                            <label for="edit-volume">Volume</label>
+                            <div class="edit-control-row">
+                                <input type="range" id="edit-volume" min="0.2" max="3" step="0.05" value="1">
+                                <output id="edit-volume-out">100%</output>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="edit-section">
+                        <h4><i class="ri-image-edit-line"></i> Imagem</h4>
+
+                        <label class="edit-check">
+                            <input type="checkbox" id="edit-mirror">
+                            <span>Espelhar horizontalmente <small>(inverte o vídeo da esquerda para a direita)</small></span>
+                        </label>
+
+                        <div class="edit-control">
+                            <label for="edit-zoom">Zoom (corta as bordas)</label>
+                            <div class="edit-control-row">
+                                <input type="range" id="edit-zoom" min="1" max="1.4" step="0.01" value="1">
+                                <output id="edit-zoom-out">1.00x</output>
+                            </div>
+                        </div>
+
+                        <div class="edit-control">
+                            <label for="edit-brightness">Brilho</label>
+                            <div class="edit-control-row">
+                                <input type="range" id="edit-brightness" min="-0.3" max="0.3" step="0.01" value="0">
+                                <output id="edit-brightness-out">0</output>
+                            </div>
+                        </div>
+
+                        <div class="edit-control">
+                            <label for="edit-contrast">Contraste</label>
+                            <div class="edit-control-row">
+                                <input type="range" id="edit-contrast" min="0.5" max="1.8" step="0.01" value="1">
+                                <output id="edit-contrast-out">1.00</output>
+                            </div>
+                        </div>
+
+                        <div class="edit-control">
+                            <label for="edit-saturation">Saturação</label>
+                            <div class="edit-control-row">
+                                <input type="range" id="edit-saturation" min="0" max="2" step="0.01" value="1">
+                                <output id="edit-saturation-out">1.00</output>
+                            </div>
+                        </div>
+
+                        <div class="edit-control">
+                            <label for="edit-grain">Granulado (ruído sutil)</label>
+                            <div class="edit-control-row">
+                                <input type="range" id="edit-grain" min="0" max="25" step="1" value="0">
+                                <output id="edit-grain-out">0</output>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="edit-section">
+                        <h4><i class="ri-scissors-cut-line"></i> Cortar Pontas</h4>
+
+                        <div class="edit-control">
+                            <label for="edit-trim-start">Cortar do início (segundos)</label>
+                            <div class="edit-control-row">
+                                <input type="range" id="edit-trim-start" min="0" max="10" step="0.1" value="0">
+                                <output id="edit-trim-start-out">0,0s</output>
+                            </div>
+                        </div>
+
+                        <div class="edit-control">
+                            <label for="edit-trim-end">Cortar do fim (segundos)</label>
+                            <div class="edit-control-row">
+                                <input type="range" id="edit-trim-end" min="0" max="10" step="0.1" value="0">
+                                <output id="edit-trim-end-out">0,0s</output>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="alert-box edit-alert">
+                        <i class="ri-information-line"></i>
+                        <div id="edit-summary">
+                            O Short original é preservado — os ajustes sempre geram um arquivo novo
+                            (<code>_v2</code>, <code>_v3</code>...) na sua Biblioteca.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-footer edit-short-footer">
+                    <button id="btn-reset-edit" class="btn-secondary" type="button">
+                        <i class="ri-arrow-go-back-line"></i> Zerar ajustes
+                    </button>
+                    <button id="btn-apply-edit" class="btn-primary" type="button">
+                        <i class="ri-magic-line"></i> Aplicar e gerar nova versão
+                    </button>
                 </div>
             </div>
         </div>
@@ -473,6 +636,55 @@
                             <button id="btn-clear-cache" class="btn-secondary btn-clear-cache" type="button">
                                 <i class="ri-broom-line"></i> <span>Limpar Vídeos Fonte (Liberar Espaço)</span>
                             </button>
+                        </div>
+                    </div>
+
+                    <div class="setting-group cookies-group" id="cookies-group">
+                        <label><strong><i class="ri-shield-keyhole-line"></i> Acesso ao YouTube (Vídeos +18 / Anti-bot):</strong></label>
+                        <div class="cookie-box" id="cookie-dropzone">
+                            <div class="cookie-status">
+                                <span class="cookie-badge cookie-badge-off" id="cookie-badge"><i class="ri-loader-4-line"></i> Verificando</span>
+                                <span class="cookie-status-text" id="cookie-status-text">Checando os cookies salvos...</span>
+                            </div>
+
+                            <div class="cookie-js-warning" id="cookie-js-warning" style="display:none;">
+                                <i class="ri-error-warning-fill"></i>
+                                <span id="cookie-js-message"></span>
+                            </div>
+
+                            <div class="cookie-actions">
+                                <button id="btn-cookies-browser" class="btn-secondary cookie-btn" type="button">
+                                    <i class="ri-download-cloud-2-line"></i> <span>Importar do navegador</span>
+                                </button>
+                                <select id="cookie-browser-select" class="cookie-select" title="Navegador de origem">
+                                    <option value="">Detectar automaticamente</option>
+                                </select>
+                                <button id="btn-cookies-file" class="btn-secondary cookie-btn" type="button">
+                                    <i class="ri-upload-2-line"></i> <span>Enviar cookies.txt</span>
+                                </button>
+                                <button id="btn-cookies-paste" class="btn-secondary cookie-btn" type="button">
+                                    <i class="ri-clipboard-line"></i> <span>Colar conteúdo</span>
+                                </button>
+                                <button id="btn-cookies-remove" class="btn-secondary cookie-btn cookie-btn-danger" type="button">
+                                    <i class="ri-delete-bin-line"></i> <span>Remover</span>
+                                </button>
+                                <input type="file" id="cookie-file-input" accept=".txt,.json" style="display:none;">
+                            </div>
+
+                            <div class="cookie-paste-area" id="cookie-paste-area" style="display:none;">
+                                <textarea id="cookie-paste-input" rows="5" spellcheck="false"
+                                    placeholder="Cole aqui TODO o conteúdo do arquivo cookies.txt (ou o JSON do Cookie-Editor)..."></textarea>
+                                <button id="btn-cookies-paste-save" class="btn-primary cookie-btn-save" type="button">
+                                    <i class="ri-save-line"></i> <span>Salvar cookies colados</span>
+                                </button>
+                            </div>
+
+                            <span class="setting-hint cookie-hint">
+                                Só é necessário para vídeos com <strong>restrição de idade (+18)</strong>, exclusivos de membros ou quando o YouTube exige verificação anti-bot.
+                                Com o navegador aberto, o caminho mais rápido é exportar com a extensão
+                                <a href="https://chromewebstore.google.com/detail/get-cookiestxt-locally/cclelndahbckbenkjhflpdbgdldlbecc" target="_blank">Get cookies.txt LOCALLY <i class="ri-external-link-line"></i></a>
+                                e arrastar o arquivo aqui. Os cookies ficam apenas em <code>storage/cookies.txt</code>, no seu computador.
+                            </span>
                         </div>
                     </div>
 

@@ -32,3 +32,8 @@ storage/yt_auth/*
 *.swp
 *.swo
 *~
+
+# Cookies do YouTube = credenciais de sessao. NUNCA versionar/publicar.
+storage/*cookies*.txt
+storage/*cookies*.txt.bak
+cookies.txt

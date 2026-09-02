@@ -87,6 +87,7 @@ const el = {
     progressBarFill: document.getElementById('progress-bar-fill'),
     progressPercentage: document.getElementById('progress-percentage'),
     progressStatusText: document.getElementById('progress-status-text'),
+    progressModalTitle: document.getElementById('progress-modal-title'),
     progressStageStep: document.getElementById('progress-stage-step'),
     stepSubs: document.getElementById('step-subs'),
     stepDownload: document.getElementById('step-download'),
@@ -112,6 +113,53 @@ const el = {
     statDownloadsMb: document.getElementById('stat-downloads-mb'),
     statOutputsMb: document.getElementById('stat-outputs-mb'),
     btnClearCache: document.getElementById('btn-clear-cache'),
+    // Ajustes do Short gerado
+    editShortModal: document.getElementById('edit-short-modal'),
+    btnCloseEditShort: document.getElementById('btn-close-edit-short'),
+    btnOpenEditShort: document.getElementById('btn-open-edit-short'),
+    btnApplyEdit: document.getElementById('btn-apply-edit'),
+    btnResetEdit: document.getElementById('btn-reset-edit'),
+    editFileName: document.getElementById('edit-file-name'),
+    editFileMeta: document.getElementById('edit-file-meta'),
+    editSummary: document.getElementById('edit-summary'),
+    editSpeed: document.getElementById('edit-speed'),
+    editSpeedOut: document.getElementById('edit-speed-out'),
+    editPreservePitch: document.getElementById('edit-preserve-pitch'),
+    editPitch: document.getElementById('edit-pitch'),
+    editPitchOut: document.getElementById('edit-pitch-out'),
+    editVolume: document.getElementById('edit-volume'),
+    editVolumeOut: document.getElementById('edit-volume-out'),
+    editMirror: document.getElementById('edit-mirror'),
+    editZoom: document.getElementById('edit-zoom'),
+    editZoomOut: document.getElementById('edit-zoom-out'),
+    editBrightness: document.getElementById('edit-brightness'),
+    editBrightnessOut: document.getElementById('edit-brightness-out'),
+    editContrast: document.getElementById('edit-contrast'),
+    editContrastOut: document.getElementById('edit-contrast-out'),
+    editSaturation: document.getElementById('edit-saturation'),
+    editSaturationOut: document.getElementById('edit-saturation-out'),
+    editGrain: document.getElementById('edit-grain'),
+    editGrainOut: document.getElementById('edit-grain-out'),
+    editTrimStart: document.getElementById('edit-trim-start'),
+    editTrimStartOut: document.getElementById('edit-trim-start-out'),
+    editTrimEnd: document.getElementById('edit-trim-end'),
+    editTrimEndOut: document.getElementById('edit-trim-end-out'),
+    // Acesso ao YouTube (cookies para vídeos +18 / anti-bot)
+    cookiesGroup: document.getElementById('cookies-group'),
+    cookieDropzone: document.getElementById('cookie-dropzone'),
+    cookieBadge: document.getElementById('cookie-badge'),
+    cookieStatusText: document.getElementById('cookie-status-text'),
+    cookieJsWarning: document.getElementById('cookie-js-warning'),
+    cookieJsMessage: document.getElementById('cookie-js-message'),
+    cookieBrowserSelect: document.getElementById('cookie-browser-select'),
+    btnCookiesBrowser: document.getElementById('btn-cookies-browser'),
+    btnCookiesFile: document.getElementById('btn-cookies-file'),
+    cookieFileInput: document.getElementById('cookie-file-input'),
+    btnCookiesPaste: document.getElementById('btn-cookies-paste'),
+    cookiePasteArea: document.getElementById('cookie-paste-area'),
+    cookiePasteInput: document.getElementById('cookie-paste-input'),
+    btnCookiesPasteSave: document.getElementById('btn-cookies-paste-save'),
+    btnCookiesRemove: document.getElementById('btn-cookies-remove'),
     btnViewLibrary: document.getElementById('btn-view-library'),
     librarySection: document.getElementById('library-section'),
     libraryGrid: document.getElementById('library-grid'),
@@ -259,6 +307,249 @@ async function clearDiskCache() {
     }
 }
 
+/* ==========================================================================
+   ACESSO AO YOUTUBE (COOKIES) - vídeos +18, membros e anti-bot
+   ========================================================================== */
+
+const COOKIE_ERROR_HINTS = [
+    'cookie', 'restrição de idade', 'restricao de idade', 'exige login',
+    'anti-bot', 'sign in', 'não é um robô', 'nao e um robo', 'membros do canal'
+];
+
+function looksLikeCookieError(message) {
+    const low = (message || '').toLowerCase();
+    return COOKIE_ERROR_HINTS.some(hint => low.includes(hint));
+}
+
+function setCookieButtonsBusy(isBusy, activeBtn) {
+    [el.btnCookiesBrowser, el.btnCookiesFile, el.btnCookiesPaste,
+     el.btnCookiesRemove, el.btnCookiesPasteSave].forEach(btn => {
+        if (btn) btn.disabled = isBusy;
+    });
+    if (activeBtn) {
+        const icon = activeBtn.querySelector('i');
+        if (icon) {
+            if (isBusy) {
+                icon.dataset.originalClass = icon.dataset.originalClass || icon.className;
+                icon.className = 'ri-loader-4-line';
+            } else if (icon.dataset.originalClass) {
+                icon.className = icon.dataset.originalClass;
+            }
+        }
+    }
+}
+
+function renderCookieStatus(data) {
+    if (!el.cookieBadge || !el.cookieStatusText) return;
+    state.cookiesConfigured = !!(data && data.configured && data.has_login && !data.expired);
+
+    let badgeClass = 'cookie-badge cookie-badge-off';
+    let badgeText = '<i class="ri-close-circle-line"></i> Não configurado';
+
+    if (data && data.configured) {
+        if (data.expired || !data.has_youtube) {
+            badgeClass = 'cookie-badge cookie-badge-off';
+            badgeText = '<i class="ri-error-warning-line"></i> Inválido';
+        } else if (!data.has_login) {
+            badgeClass = 'cookie-badge cookie-badge-warn';
+            badgeText = '<i class="ri-alert-line"></i> Sem login';
+        } else {
+            badgeClass = 'cookie-badge cookie-badge-on';
+            badgeText = '<i class="ri-shield-check-line"></i> Ativo';
+        }
+    }
+
+    el.cookieBadge.className = badgeClass;
+    el.cookieBadge.innerHTML = badgeText;
+
+    let text = (data && data.message) || 'Não foi possível ler o estado dos cookies.';
+    if (data && data.configured && data.total) {
+        text += ' (' + data.youtube_cookies + ' cookies do YouTube em ' + (data.filename || 'cookies.txt') + ')';
+    }
+    el.cookieStatusText.textContent = text;
+
+    if (el.btnCookiesRemove) {
+        el.btnCookiesRemove.style.display = (data && data.configured) ? 'inline-flex' : 'none';
+    }
+
+    if (el.cookieJsWarning) {
+        const js = data && data.js_runtime;
+        const broken = js && !js.ok;
+        el.cookieJsWarning.style.display = broken ? 'flex' : 'none';
+        if (broken && el.cookieJsMessage) el.cookieJsMessage.textContent = js.message;
+    }
+
+    if (data && Array.isArray(data.browsers) && el.cookieBrowserSelect) {
+        const current = el.cookieBrowserSelect.value;
+        el.cookieBrowserSelect.innerHTML = '<option value="">Detectar automaticamente</option>' +
+            data.browsers.map(b => '<option value="' + escapeHtml(b.id) + '">' + escapeHtml(b.label) + '</option>').join('');
+        el.cookieBrowserSelect.value = current;
+    }
+}
+
+async function refreshCookieStatus() {
+    if (!el.cookieBadge) return;
+    try {
+        const res = await fetch('/api/cookies/status');
+        if (!res.ok) throw new Error('Falha ao consultar os cookies');
+        renderCookieStatus(await res.json());
+    } catch (e) {
+        console.warn('Erro ao consultar status dos cookies:', e);
+        renderCookieStatus(null);
+    }
+}
+
+async function submitCookies(request, activeBtn, successPrefix) {
+    setCookieButtonsBusy(true, activeBtn);
+    try {
+        const res = await request();
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.detail || 'Falha ao salvar os cookies.');
+
+        renderCookieStatus(data);
+        const origem = data.source ? ' (' + data.source + ')' : '';
+        showToast(successPrefix + ': ' + (data.imported || 0) + ' cookies salvos' + origem + '.', 'success');
+
+        if (!data.has_login) {
+            showToast('Atenção: não há cookies de sessão logada. Vídeos +18 podem continuar bloqueados.', 'info', 8000);
+        }
+        return true;
+    } catch (err) {
+        showToast(err.message, 'error', 9000);
+        return false;
+    } finally {
+        setCookieButtonsBusy(false, activeBtn);
+        refreshCookieStatus();
+    }
+}
+
+function importCookiesFromBrowser() {
+    const browser = el.cookieBrowserSelect ? el.cookieBrowserSelect.value : '';
+    showToast('Lendo os cookies do navegador...', 'info');
+    return submitCookies(
+        () => fetch('/api/cookies/browser', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ browser: browser || null })
+        }),
+        el.btnCookiesBrowser,
+        'Cookies importados do navegador'
+    );
+}
+
+function uploadCookieFile(file) {
+    if (!file) return Promise.resolve(false);
+    const form = new FormData();
+    form.append('file', file);
+    return submitCookies(
+        () => fetch('/api/cookies/upload', { method: 'POST', body: form }),
+        el.btnCookiesFile,
+        'Arquivo de cookies aceito'
+    );
+}
+
+function saveCookiesFromTextarea() {
+    const content = el.cookiePasteInput ? el.cookiePasteInput.value.trim() : '';
+    if (!content) {
+        showToast('Cole o conteúdo do arquivo cookies.txt antes de salvar.', 'error');
+        return Promise.resolve(false);
+    }
+    return submitCookies(
+        () => fetch('/api/cookies/text', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ content: content })
+        }),
+        el.btnCookiesPasteSave,
+        'Cookies colados aceitos'
+    ).then(ok => {
+        if (ok && el.cookiePasteInput) {
+            el.cookiePasteInput.value = '';
+            el.cookiePasteArea.style.display = 'none';
+        }
+        return ok;
+    });
+}
+
+async function removeCookies() {
+    if (!confirm('Remover os cookies salvos?\nVídeos com restrição de idade voltarão a falhar.')) return;
+    setCookieButtonsBusy(true, el.btnCookiesRemove);
+    try {
+        const res = await fetch('/api/cookies', { method: 'DELETE' });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.detail || 'Falha ao remover os cookies.');
+        renderCookieStatus(data);
+        showToast('Cookies removidos.', 'info');
+    } catch (err) {
+        showToast(err.message, 'error');
+    } finally {
+        setCookieButtonsBusy(false, el.btnCookiesRemove);
+    }
+}
+
+function handleTaskError(task, prefix) {
+    const message = (task && task.error) || 'Desconhecido';
+    const needsCookies = (task && task.needs_cookies) || looksLikeCookieError(message);
+    showToast(prefix + ': ' + message, 'error', needsCookies ? 12000 : 4000);
+    if (needsCookies) openCookiesPanel();
+}
+
+function openCookiesPanel() {
+    if (!el.settingsModal || !el.cookiesGroup) return;
+    el.settingsModal.style.display = 'flex';
+    refreshCookieStatus();
+    fetchStorageStats();
+
+    el.cookiesGroup.classList.add('is-highlighted');
+    setTimeout(() => {
+        el.cookiesGroup.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 80);
+    setTimeout(() => el.cookiesGroup.classList.remove('is-highlighted'), 6000);
+}
+
+function setupCookiesPanel() {
+    if (!el.cookieDropzone) return;
+
+    if (el.btnCookiesBrowser) el.btnCookiesBrowser.addEventListener('click', importCookiesFromBrowser);
+    if (el.btnCookiesFile) el.btnCookiesFile.addEventListener('click', () => el.cookieFileInput.click());
+    if (el.btnCookiesRemove) el.btnCookiesRemove.addEventListener('click', removeCookies);
+    if (el.btnCookiesPasteSave) el.btnCookiesPasteSave.addEventListener('click', saveCookiesFromTextarea);
+
+    if (el.cookieFileInput) {
+        el.cookieFileInput.addEventListener('change', (e) => {
+            const file = e.target.files && e.target.files[0];
+            if (file) uploadCookieFile(file);
+            e.target.value = '';
+        });
+    }
+
+    if (el.btnCookiesPaste) {
+        el.btnCookiesPaste.addEventListener('click', () => {
+            const visible = el.cookiePasteArea.style.display !== 'none';
+            el.cookiePasteArea.style.display = visible ? 'none' : 'flex';
+            if (!visible && el.cookiePasteInput) el.cookiePasteInput.focus();
+        });
+    }
+
+    // Arrastar o cookies.txt direto para dentro da caixa
+    ['dragenter', 'dragover'].forEach(evt => {
+        el.cookieDropzone.addEventListener(evt, (e) => {
+            e.preventDefault();
+            el.cookieDropzone.classList.add('is-dragover');
+        });
+    });
+    ['dragleave', 'drop'].forEach(evt => {
+        el.cookieDropzone.addEventListener(evt, (e) => {
+            e.preventDefault();
+            el.cookieDropzone.classList.remove('is-dragover');
+        });
+    });
+    el.cookieDropzone.addEventListener('drop', (e) => {
+        const file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+        if (file) uploadCookieFile(file);
+    });
+}
+
 function updateSequentialBanner() {
     const isSequential = el.cfgClipMode.value === 'sequential';
     const isCustomManual = el.cfgClipMode.value === 'custom_manual';
@@ -352,6 +643,7 @@ function setupEventListeners() {
 
     el.btnOpenSettings.addEventListener('click', () => {
         fetchStorageStats();
+        refreshCookieStatus();
         el.settingsModal.style.display = 'flex';
     });
     el.btnCloseSettings.addEventListener('click', () => {
@@ -361,6 +653,9 @@ function setupEventListeners() {
     if (el.btnClearCache) {
         el.btnClearCache.addEventListener('click', clearDiskCache);
     }
+
+    setupCookiesPanel();
+    setupEditShortModal();
 
     el.btnViewLibrary.addEventListener('click', () => {
         const isHidden = el.librarySection.style.display === 'none';
@@ -806,7 +1101,9 @@ async function analyzeVideo() {
 
         if (!res.ok) {
             const errData = await res.json().catch(() => ({ detail: 'Erro desconhecido' }));
-            throw new Error(errData.detail || 'Falha ao analisar vídeo.');
+            const analyzeError = new Error(errData.detail || 'Falha ao analisar vídeo.');
+            analyzeError.needsCookies = res.headers.get('X-Needs-Cookies') === '1';
+            throw analyzeError;
         }
 
         const data = await res.json();
@@ -846,7 +1143,9 @@ async function analyzeVideo() {
 
     } catch (err) {
         if (err.name !== 'AbortError') {
-            showToast(err.message, 'error');
+            const needsCookies = err.needsCookies || looksLikeCookieError(err.message);
+            showToast(err.message, 'error', needsCookies ? 12000 : 4000);
+            if (needsCookies) openCookiesPanel();
         }
     } finally {
         state.isAnalyzing = false;
@@ -1093,13 +1392,237 @@ async function generateAllShorts() {
 // ==========================================================================
 // PROGRESS MODAL & POLLING
 // ==========================================================================
-function openProgressModal(isBatch = false, totalClips = 0) {
+/* ==========================================================================
+   AJUSTES DO SHORT GERADO (velocidade, tom, espelho, cor, cortes)
+   ========================================================================== */
+
+const EDIT_DEFAULTS = {
+    speed: 1,
+    preserve_pitch: true,
+    pitch_semitones: 0,
+    volume: 1,
+    mirror: false,
+    zoom: 1,
+    brightness: 0,
+    contrast: 1,
+    saturation: 1,
+    grain: 0,
+    trim_start: 0,
+    trim_end: 0
+};
+
+const EDIT_PRESETS = {
+    none: {},
+    subtle: { speed: 1.03, zoom: 1.02, saturation: 1.04 },
+    medium: { speed: 1.06, pitch_semitones: 0.5, mirror: true, zoom: 1.04, saturation: 1.08, brightness: 0.02 },
+    strong: { speed: 1.12, pitch_semitones: 1, mirror: true, zoom: 1.07, saturation: 1.12, brightness: 0.03, grain: 4 }
+};
+
+const EDIT_FIELDS = [
+    { key: 'speed', input: 'editSpeed', out: 'editSpeedOut', format: v => v.toFixed(2) + 'x' },
+    { key: 'pitch_semitones', input: 'editPitch', out: 'editPitchOut', format: v => (v > 0 ? '+' : '') + v.toFixed(1) },
+    { key: 'volume', input: 'editVolume', out: 'editVolumeOut', format: v => Math.round(v * 100) + '%' },
+    { key: 'zoom', input: 'editZoom', out: 'editZoomOut', format: v => v.toFixed(2) + 'x' },
+    { key: 'brightness', input: 'editBrightness', out: 'editBrightnessOut', format: v => (v > 0 ? '+' : '') + v.toFixed(2) },
+    { key: 'contrast', input: 'editContrast', out: 'editContrastOut', format: v => v.toFixed(2) },
+    { key: 'saturation', input: 'editSaturation', out: 'editSaturationOut', format: v => v.toFixed(2) },
+    { key: 'grain', input: 'editGrain', out: 'editGrainOut', format: v => String(Math.round(v)) },
+    { key: 'trim_start', input: 'editTrimStart', out: 'editTrimStartOut', format: v => v.toFixed(1).replace('.', ',') + 's' },
+    { key: 'trim_end', input: 'editTrimEnd', out: 'editTrimEndOut', format: v => v.toFixed(1).replace('.', ',') + 's' }
+];
+
+function readEditForm() {
+    const values = Object.assign({}, EDIT_DEFAULTS);
+    EDIT_FIELDS.forEach(f => {
+        const input = el[f.input];
+        if (input) values[f.key] = parseFloat(input.value);
+    });
+    values.mirror = !!(el.editMirror && el.editMirror.checked);
+    values.preserve_pitch = !!(el.editPreservePitch && el.editPreservePitch.checked);
+    return values;
+}
+
+function updateEditOutputs() {
+    const values = readEditForm();
+    EDIT_FIELDS.forEach(f => {
+        if (el[f.out] && el[f.input]) el[f.out].textContent = f.format(parseFloat(el[f.input].value));
+    });
+    updateEditSummary(values);
+}
+
+function updateEditSummary(values) {
+    if (!el.editSummary) return;
+
+    const source = state.editSourceDuration || 0;
+    const changes = [];
+
+    if (Math.abs(values.speed - 1) > 0.001) {
+        changes.push(`velocidade ${values.speed.toFixed(2)}x`);
+    }
+    if (Math.abs(values.pitch_semitones) > 0.01) {
+        changes.push(`tom ${values.pitch_semitones > 0 ? '+' : ''}${values.pitch_semitones} semitons`);
+    }
+    if (Math.abs(values.volume - 1) > 0.001) changes.push(`volume ${Math.round(values.volume * 100)}%`);
+    if (values.mirror) changes.push('espelhado');
+    if (values.zoom > 1.001) changes.push(`zoom ${values.zoom.toFixed(2)}x`);
+    if (Math.abs(values.brightness) > 0.001) changes.push('brilho ajustado');
+    if (Math.abs(values.contrast - 1) > 0.001) changes.push('contraste ajustado');
+    if (Math.abs(values.saturation - 1) > 0.001) changes.push('saturação ajustada');
+    if (values.grain > 0.5) changes.push('granulado');
+    if (values.trim_start > 0.05) changes.push(`-${values.trim_start.toFixed(1)}s do início`);
+    if (values.trim_end > 0.05) changes.push(`-${values.trim_end.toFixed(1)}s do fim`);
+
+    let html = '';
+    if (source > 0) {
+        const kept = Math.max(0, source - values.trim_start - values.trim_end);
+        const finalDur = kept / (values.speed || 1);
+        html += `<strong>Duração final: ${finalDur.toFixed(1)}s</strong> (original: ${source.toFixed(1)}s). `;
+        if (kept < 1) {
+            html += '<strong style="color:var(--accent-rose);">Os cortes não deixam vídeo suficiente.</strong> ';
+        }
+    }
+    html += changes.length
+        ? `Aplicando: ${escapeHtml(changes.join(', '))}. `
+        : 'Nenhum ajuste selecionado — o resultado seria idêntico ao original. ';
+    html += 'O Short original é preservado: o resultado vira um arquivo novo (<code>_v2</code>, <code>_v3</code>...) na Biblioteca.';
+
+    el.editSummary.innerHTML = html;
+}
+
+function applyEditValues(values) {
+    const merged = Object.assign({}, EDIT_DEFAULTS, values || {});
+    EDIT_FIELDS.forEach(f => {
+        if (el[f.input]) el[f.input].value = merged[f.key];
+    });
+    if (el.editMirror) el.editMirror.checked = !!merged.mirror;
+    if (el.editPreservePitch) el.editPreservePitch.checked = merged.preserve_pitch !== false;
+    updateEditOutputs();
+}
+
+async function openEditShortModal(filename) {
+    if (!el.editShortModal) return;
+
+    state.editFilename = filename;
+    state.editSourceDuration = 0;
+
+    if (el.editFileName) el.editFileName.textContent = filename;
+    if (el.editFileMeta) el.editFileMeta.textContent = 'Carregando informações do arquivo...';
+
+    applyEditValues(EDIT_DEFAULTS);
+    el.editShortModal.style.display = 'flex';
+
+    try {
+        const res = await fetch(`/api/short-info/${encodeURIComponent(filename)}`);
+        if (res.ok) {
+            const info = await res.json();
+            state.editSourceDuration = info.duration || 0;
+
+            if (el.editFileMeta) {
+                el.editFileMeta.textContent = `${info.duration.toFixed(1)}s · ${info.size_mb} MB`;
+            }
+            // Não deixa cortar mais do que o vídeo tem.
+            const maxTrim = Math.max(0, Math.min(60, info.duration - 1));
+            [el.editTrimStart, el.editTrimEnd].forEach(input => {
+                if (input) input.max = maxTrim.toFixed(1);
+            });
+            updateEditOutputs();
+        } else if (el.editFileMeta) {
+            el.editFileMeta.textContent = 'Não foi possível ler a duração deste arquivo.';
+        }
+    } catch {
+        if (el.editFileMeta) el.editFileMeta.textContent = 'Não foi possível ler a duração deste arquivo.';
+    }
+}
+
+function closeEditShortModal() {
+    if (el.editShortModal) el.editShortModal.style.display = 'none';
+}
+
+async function applyShortEdits() {
+    if (!state.editFilename) return;
+    if (state.isGenerating) {
+        showToast('Aguarde a renderização atual finalizar.', 'info');
+        return;
+    }
+
+    const values = readEditForm();
+    const changed = Object.keys(EDIT_DEFAULTS).some(key => values[key] !== EDIT_DEFAULTS[key]);
+    if (!changed) {
+        showToast('Escolha ao menos um ajuste (ou use um preset) antes de aplicar.', 'error');
+        return;
+    }
+
+    const payload = Object.assign({ filename: state.editFilename }, values);
+
+    try {
+        el.btnApplyEdit.disabled = true;
+        const res = await fetch('/api/edit-short', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.detail || 'Falha ao aplicar os ajustes.');
+
+        closeEditShortModal();
+        state.isGenerating = true;
+        openProgressModal(false, 0, 'Aplicando ajustes no Short...', 'Gerando nova versão do seu Short');
+        startProgressPolling(data.task_id, state.editFilename);
+    } catch (err) {
+        showToast(err.message, 'error');
+    } finally {
+        el.btnApplyEdit.disabled = false;
+    }
+}
+
+function setupEditShortModal() {
+    if (!el.editShortModal) return;
+
+    EDIT_FIELDS.forEach(f => {
+        if (el[f.input]) el[f.input].addEventListener('input', updateEditOutputs);
+    });
+    if (el.editMirror) el.editMirror.addEventListener('change', updateEditOutputs);
+    if (el.editPreservePitch) el.editPreservePitch.addEventListener('change', updateEditOutputs);
+
+    document.querySelectorAll('.edit-preset-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            applyEditValues(EDIT_PRESETS[btn.dataset.preset] || {});
+            document.querySelectorAll('.edit-preset-btn').forEach(b => b.classList.remove('is-active'));
+            btn.classList.add('is-active');
+        });
+    });
+
+    if (el.btnCloseEditShort) el.btnCloseEditShort.addEventListener('click', closeEditShortModal);
+    if (el.btnResetEdit) el.btnResetEdit.addEventListener('click', () => applyEditValues(EDIT_DEFAULTS));
+    if (el.btnApplyEdit) el.btnApplyEdit.addEventListener('click', applyShortEdits);
+
+    if (el.btnOpenEditShort) {
+        el.btnOpenEditShort.addEventListener('click', () => {
+            const result = state.activePublishResult;
+            if (!result || !result.filename) {
+                showToast('Nenhum Short selecionado.', 'error');
+                return;
+            }
+            closePreviewModal();
+            openEditShortModal(result.filename);
+        });
+    }
+
+    el.editShortModal.addEventListener('click', (e) => {
+        if (e.target === el.editShortModal) closeEditShortModal();
+    });
+}
+
+function openProgressModal(isBatch = false, totalClips = 0, customMessage = null, customTitle = null) {
     el.progressModal.style.display = 'flex';
+    if (el.progressModalTitle) {
+        el.progressModalTitle.textContent = customTitle || 'Renderizando seu Short em 1080x1920';
+    }
     el.progressBarFill.style.width = '2%';
     el.progressPercentage.textContent = '2%';
-    el.progressStatusText.textContent = isBatch
+    el.progressStatusText.textContent = customMessage || (isBatch
         ? `Iniciando geração em lote de ${totalClips} shorts...`
-        : 'Iniciando pipeline de vídeo...';
+        : 'Iniciando pipeline de vídeo...');
     el.progressStageStep.textContent = 'Etapa 1 de 4';
     [el.stepSubs, el.stepDownload, el.stepRender, el.stepFinish].forEach(s => s.className = 'step-item');
     el.stepSubs.classList.add('active');
@@ -1157,13 +1680,16 @@ function startProgressPolling(taskId, title) {
                     closeProgressModal();
                     openPreviewModal(task.result);
                     showToast('Short renderizado com sucesso!', 'success');
+                    if (el.librarySection && el.librarySection.style.display !== 'none') {
+                        loadLibraryOutputs();
+                    }
                 }, 600);
             } else if (task.status === 'error') {
                 clearInterval(state.pollInterval);
                 state.pollInterval = null;
                 state.isGenerating = false;
                 closeProgressModal();
-                showToast(`Erro: ${task.error || 'Desconhecido'}`, 'error');
+                handleTaskError(task, 'Erro');
             }
         } catch {
             consecutiveErrors++;
@@ -1262,7 +1788,7 @@ function startBatchProgressPolling(taskId, totalClips) {
                 state.isGenerating = false;
                 state.isBatchMode = false;
                 closeProgressModal();
-                showToast(`Erro no lote: ${task.error || 'Desconhecido'}`, 'error');
+                handleTaskError(task, 'Erro no lote');
             }
         } catch {
             consecutiveErrors++;
@@ -1469,6 +1995,9 @@ async function loadLibraryOutputs() {
                     <button class="btn-primary btn-play-lib">
                         <i class="ri-play-fill"></i> Assistir
                     </button>
+                    <button class="btn-secondary btn-edit-lib">
+                        <i class="ri-equalizer-line"></i> Ajustes
+                    </button>
                     <button class="btn-secondary btn-pub-lib" style="color:#ff4d4d;">
                         <i class="ri-youtube-fill"></i> Publicar
                     </button>
@@ -1488,6 +2017,10 @@ async function loadLibraryOutputs() {
                     download_url: file.download_url,
                     filename: file.filename
                 });
+            });
+
+            card.querySelector('.btn-edit-lib').addEventListener('click', () => {
+                openEditShortModal(file.filename);
             });
 
             card.querySelector('.btn-pub-lib').addEventListener('click', () => {
@@ -1519,7 +2052,7 @@ function formatTime(seconds) {
     return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 
-function showToast(message, type = 'info') {
+function showToast(message, type = 'info', duration = 4000) {
     const toast = document.createElement('div');
     toast.className = `toast toast-${type}`;
 
@@ -1537,5 +2070,5 @@ function showToast(message, type = 'info') {
         toast.style.transform = 'translateX(100%)';
         toast.style.transition = 'all 0.3s ease';
         setTimeout(() => toast.remove(), 300);
-    }, 4000);
+    }, duration);
 }
